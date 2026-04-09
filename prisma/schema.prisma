@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Kategori {
+  id          Int      @id @default(autoincrement())
+  nama        String   @unique
+  deskripsi   String?
+  barang      Barang[]
+}
+
+model Barang {
+  id          String   @id @default(uuid())
+  kode_barang String   @unique
+  nama_barang String
+  satuan      String
+  stok        Int      @default(0)
+  
+  kategoriId  Int
+  kategori    Kategori @relation(fields: [kategoriId], references: [id])
+  
+  transaksi   RequisitionDetail[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model RequisitionHeader {
+  id          String   @id @default(uuid())
+  no_form     String   @unique
+  tanggal     DateTime @default(now())
+  pic_nama    String
+  departemen  String
+  keterangan  String?
+  
+  items       RequisitionDetail[]
+
+  createdAt   DateTime @default(now())
+}
+
+model RequisitionDetail {
+  id             String            @id @default(uuid())
+  qty_diambil    Int
+  
+  requisitionId  String
+  requisition    RequisitionHeader @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
+  
+  barangId       String
+  barang         Barang            @relation(fields: [barangId], references: [id])
+}
+
+model User {
+  id       String   @id @default(uuid())
+  inisial  String   @unique
+  nama     String
+  password String
+  
+  createdAt DateTime @default(now())
+}

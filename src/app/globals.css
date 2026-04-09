@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+body {
+  /* Background gradient terang yang soft, sedikit lebih warm */
+  background: linear-gradient(to bottom right, #fdfbfb, #ebedee, #fdfbfb);
+  color: #1e293b; /* Slate 800 */
+  min-height: 100vh;
+  font-feature-settings: "rlig" 1, "calt" 1; /* Optimasi Inter font */
+}
+
+/* Standarisasi hierarki teks */
+h1, h2, h3, h4 { @apply text-slate-900 font-extrabold tracking-tight; }
+h1 { @apply text-4xl; }
+h2 { @apply text-3xl; }
+h3 { @apply text-2xl; }
+p { @apply text-slate-600 leading-relaxed; }
+
+/* Custom Scrollbar untuk tema terang yang lebih tipis & soft */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}

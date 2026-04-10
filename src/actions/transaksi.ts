@@ -87,8 +87,8 @@ export async function createRequisition(rawData: z.infer<typeof RequisitionSchem
 
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      // PERBAIKAN DI SINI: Ditambah <any> supaya TypeScript ga ngeluh property errors ga ada
-      return { success: false, error: (error as z.ZodError<any>).errors[0].message }
+      // Ganti .errors menjadi .issues
+      return { success: false, error: error.issues[0].message }
     }
     return { success: false, error: error.message || "Terjadi kesalahan sistem" }
   }
@@ -135,8 +135,8 @@ export async function createInbound(rawData: z.infer<typeof InboundSchema>) {
     return { success: true, message: "Sukses! Stok berhasil ditambah.", data: result }
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      // PERBAIKAN DI SINI: Ditambah <any> supaya TypeScript ga ngeluh property errors ga ada
-      return { success: false, error: (error as z.ZodError<any>).errors[0].message }
+      // Ganti .errors menjadi .issues
+      return { success: false, error: error.issues[0].message }
     }
     return { success: false, error: error.message || "Terjadi kesalahan sistem" }
   }

@@ -35,17 +35,17 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
 
   return (
     <div className="w-[280px] h-screen bg-white border-r border-slate-200/80 p-5 flex flex-col z-50 fixed md:relative shrink-0">
-      {/* Brand Header - UDAH DIPERBAIKI BIAR GAK OVERFLOW */}
+      {/* Brand Header - FONT DIKECILIN & NO TRUNCATE */}
       <div className="mb-8 px-1 flex items-center justify-between">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
             <Package className="w-4.5 h-4.5 text-white" />
           </div>
-          <div className="min-w-0">
-            <h1 className="font-black text-lg tracking-tight text-slate-900 leading-none truncate">
+          <div>
+            <h1 className="font-black text-base tracking-tight text-slate-900 leading-none">
               Gudang<span className="text-indigo-600">Sync</span>
             </h1>
-            <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mt-1 truncate">Bank Syariah</p>
+            <p className="text-[9px] font-bold tracking-wider text-slate-400 uppercase mt-1">Bank Syariah</p>
           </div>
         </div>
         
@@ -96,6 +96,7 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
             {user.inisial}
           </div>
           <div className="flex-1 min-w-0">
+            {/* Yang ini tetep gue truncate karena nama orang panjang-panjang */}
             <p className="text-sm font-bold text-slate-900 truncate">{user.nama}</p>
             <p className="text-xs font-medium text-slate-500 truncate">{user.role}</p>
           </div>

@@ -9,70 +9,103 @@ import { logoutApp, getSession } from "@/actions/auth";
 
 export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void }) {
   const pathname = usePathname();
-  const [userRole, setUserRole] = useState("STAF");
+  
+  // State digabung biar gampang narik nama & inisial buat UI Profile
+  const [user, setUser] = useState({ role: "STAF", nama: "Memuat...", inisial: "..." });
 
   useEffect(() => {
-    // Ambil role user pas sidebar di-load
     getSession().then((session) => {
-      if (session && session.role) {
-        setUserRole(session.role);
+      if (session) {
+        setUser({
+          role: session.role || "STAF",
+          nama: session.nama || "User Gudang",
+          inisial: session.inisial || "U"
+        });
       }
     });
   }, []);
 
-  // Filter menu: Kalau STAF, buang menu Master Barang & Laporan
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/" },
-    ...(userRole === "ADMIN" ? [{ name: "Master Barang", icon: Package, path: "/master-barang" }] : []),
+    ...(user.role === "ADMIN" ? [{ name: "Master Barang", icon: Package, path: "/master-barang" }] : []),
     { name: "Barang Masuk", icon: PackagePlus, path: "/barang-masuk" },
     { name: "Barang Keluar", icon: ArrowRightLeft, path: "/barang-keluar" },
-    ...(userRole === "ADMIN" ? [{ name: "Laporan", icon: FileText, path: "/laporan" }] : []),
+    ...(user.role === "ADMIN" ? [{ name: "Laporan", icon: FileText, path: "/laporan" }] : []),
   ];
 
   return (
-    <div className="w-64 min-h-screen bg-white/40 backdrop-blur-2xl border-r border-slate-200 p-6 flex flex-col shadow-[10px_0_40px_rgba(0,0,0,0.03)] z-50">
-      <div className="mb-12 flex items-center justify-between">
+    <div className="w-[280px] h-screen bg-white border-r border-slate-200/80 p-5 flex flex-col z-50 fixed md:relative shrink-0">
+      {/* Brand Header */}
+      <div className="mb-8 px-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-[0_4px_12px_rgba(79,70,229,0.1)]">
-            <Package className="w-6 h-6 text-indigo-600" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-md shadow-indigo-500/20">
+            <Package className="w-5 h-5 text-white" />
           </div>
-          <h1 className="font-extrabold text-2xl tracking-tighter text-slate-950">Gudang<span className="text-indigo-600">Sync</span></h1>
+          <div>
+            <h1 className="font-black text-xl tracking-tight text-slate-900 leading-none">
+              Gudang<span className="text-indigo-600">Sync</span>
+            </h1>
+            <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mt-1">Bank Syariah</p>
+          </div>
         </div>
         
-        <button onClick={onCloseMobile} className="md:hidden p-2 text-slate-500 hover:text-slate-800 transition-colors">
+        <button onClick={onCloseMobile} className="md:hidden p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      <nav className="flex flex-col gap-2.5">
-        {menuItems.map((item) => {
-          const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
-          
-          return (
-            <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group">
-              {isActive && (
-                <motion.div
-                  layoutId="sidebar-active"
-                  className="absolute inset-0 bg-white border border-slate-200 shadow-[0_4px_12px_rgba(0,0,0,0.03)] rounded-xl z-0"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                />
-              )}
-              <div className={`relative flex items-center gap-3.5 px-4.5 py-3.5 rounded-xl transition-all duration-300 z-10 ${isActive ? 'text-indigo-700 font-semibold' : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'}`}>
-                <item.icon className={`w-5.5 h-5.5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-indigo-500'}`} />
-                <span className="font-medium tracking-tight">{item.name}</span>
-              </div>
-            </Link>
-          );
-        })}
-      </nav>
+      {/* Navigation */}
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        <div className="px-2 mb-3">
+          <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Main Menu</p>
+        </div>
+        <nav className="flex flex-col gap-1.5">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
+            
+            return (
+              <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
+                {isActive && (
+                  <motion.div
+                    layoutId="sidebar-indicator"
+                    className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
+                <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
+                  isActive 
+                    ? 'text-indigo-700 font-semibold' 
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                }`}>
+                  <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                  <span className="tracking-tight text-sm">{item.name}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
       
-      <div className="mt-auto pt-6 border-t border-slate-100">
-          <button onClick={() => logoutApp()} className="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors text-sm font-medium">
-              <LogOut className="w-5 h-5"/>
-              Keluar Sistem
+      {/* User Profile & Logout (Premium Bottom Section) */}
+      <div className="mt-auto pt-4 border-t border-slate-100">
+        <div className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-slate-200 hover:bg-slate-50 transition-all group">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200 shadow-inner shrink-0">
+            {user.inisial}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-slate-900 truncate">{user.nama}</p>
+            <p className="text-xs font-medium text-slate-500 truncate">{user.role}</p>
+          </div>
+          <button 
+            onClick={() => logoutApp()} 
+            title="Keluar Sistem"
+            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+          >
+            <LogOut className="w-4 h-4"/>
           </button>
+        </div>
       </div>
     </div>
   );

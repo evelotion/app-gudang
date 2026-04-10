@@ -29,7 +29,8 @@ export async function loginApp(formData: FormData) {
       maxAge: 60 * 60 * 24 * 7 
     });
 
-    return { success: true };
+    // PERBAIKAN DI SINI: Tambahin error: undefined biar TypeScript ga marah
+    return { success: true, error: undefined };
   } catch (error) {
     return { success: false, error: "Terjadi kesalahan sistem" };
   }

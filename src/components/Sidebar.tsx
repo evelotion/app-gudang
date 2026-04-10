@@ -35,21 +35,22 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
 
   return (
     <div className="w-[280px] h-screen bg-white border-r border-slate-200/80 p-5 flex flex-col z-50 fixed md:relative shrink-0">
-      {/* Brand Header */}
-      <div className="mb-8 px-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <Package className="w-5 h-5 text-white" />
+      {/* Brand Header - UDAH DIPERBAIKI BIAR GAK OVERFLOW */}
+      <div className="mb-8 px-1 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
+            <Package className="w-4.5 h-4.5 text-white" />
           </div>
-          <div>
-            <h1 className="font-black text-xl tracking-tight text-slate-900 leading-none">
+          <div className="min-w-0">
+            <h1 className="font-black text-lg tracking-tight text-slate-900 leading-none truncate">
               Gudang<span className="text-indigo-600">Sync</span>
             </h1>
-            <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mt-1">Bank Syariah</p>
+            <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase mt-1 truncate">Bank Syariah</p>
           </div>
         </div>
         
-        <button onClick={onCloseMobile} className="md:hidden p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
+        {/* Tombol close mobile */}
+        <button onClick={onCloseMobile} className="md:hidden p-1.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors shrink-0 ml-2">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -88,7 +89,7 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
         </nav>
       </div>
       
-      {/* User Profile & Logout (Premium Bottom Section) */}
+      {/* User Profile & Logout */}
       <div className="mt-auto pt-4 border-t border-slate-100">
         <div className="flex items-center gap-3 p-3 rounded-2xl border border-transparent hover:border-slate-200 hover:bg-slate-50 transition-all group">
           <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold border border-indigo-200 shadow-inner shrink-0">
@@ -101,7 +102,7 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
           <button 
             onClick={() => logoutApp()} 
             title="Keluar Sistem"
-            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
           >
             <LogOut className="w-4 h-4"/>
           </button>

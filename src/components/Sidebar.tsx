@@ -1,22 +1,33 @@
 "use client"
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-// Tambahan icon PackagePlus di sini
 import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut, X, PackagePlus } from "lucide-react"; 
 import { motion } from "framer-motion";
-import { logoutApp } from "@/actions/auth";
-
-const menuItems = [
-  { name: "Dashboard", icon: LayoutDashboard, path: "/" },
-  { name: "Master Barang", icon: Package, path: "/master-barang" },
-  { name: "Barang Masuk", icon: PackagePlus, path: "/barang-masuk" }, // <-- Menu Baru Barang Masuk
-  { name: "Barang Keluar", icon: ArrowRightLeft, path: "/barang-keluar" },
-  { name: "Laporan", icon: FileText, path: "/laporan" },
-];
+import { logoutApp, getSession } from "@/actions/auth";
 
 export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void }) {
   const pathname = usePathname();
+  const [userRole, setUserRole] = useState("STAF");
+
+  useEffect(() => {
+    // Ambil role user pas sidebar di-load
+    getSession().then((session) => {
+      if (session && session.role) {
+        setUserRole(session.role);
+      }
+    });
+  }, []);
+
+  // Filter menu: Kalau STAF, buang menu Master Barang & Laporan
+  const menuItems = [
+    { name: "Dashboard", icon: LayoutDashboard, path: "/" },
+    ...(userRole === "ADMIN" ? [{ name: "Master Barang", icon: Package, path: "/master-barang" }] : []),
+    { name: "Barang Masuk", icon: PackagePlus, path: "/barang-masuk" },
+    { name: "Barang Keluar", icon: ArrowRightLeft, path: "/barang-keluar" },
+    ...(userRole === "ADMIN" ? [{ name: "Laporan", icon: FileText, path: "/laporan" }] : []),
+  ];
 
   return (
     <div className="w-64 min-h-screen bg-white/40 backdrop-blur-2xl border-r border-slate-200 p-6 flex flex-col shadow-[10px_0_40px_rgba(0,0,0,0.03)] z-50">

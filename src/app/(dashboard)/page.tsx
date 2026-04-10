@@ -1,18 +1,52 @@
 "use client"
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Package, ArrowRightLeft, AlertCircle } from "lucide-react";
+import { Package, ArrowRightLeft, AlertCircle, Loader2 } from "lucide-react";
+import { getDashboardStats } from "@/actions/dashboard";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
+  // PERBAIKANNYA DI SINI BRO: Tambahin tipe data eksplisit buat statenya
+  const [stats, setStats] = useState<{
+    totalBarang: number;
+    trxHariIni: number;
+    stokMenipis: number;
+    grafikStok: { nama_barang: string; stok: number }[];
+  }>({
+    totalBarang: 0,
+    trxHariIni: 0,
+    stokMenipis: 0,
+    grafikStok: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getDashboardStats().then((res) => {
+      if (res.success && res.data) {
+        setStats(res.data);
+      }
+      setLoading(false);
+    });
+  }, []);
+
   const cards = [
-    { title: "Total Jenis Barang", value: "3", icon: Package, color: "text-blue-600", bg: "bg-blue-100/60" },
-    { title: "Transaksi Hari Ini", value: "0", icon: ArrowRightLeft, color: "text-emerald-600", bg: "bg-emerald-100/60" },
-    { title: "Stok Menipis", value: "0", icon: AlertCircle, color: "text-rose-600", bg: "bg-rose-100/60" },
+    { title: "Total Jenis Barang", value: stats.totalBarang, icon: Package, color: "text-blue-600", bg: "bg-blue-100/60" },
+    { title: "Transaksi Hari Ini", value: stats.trxHariIni, icon: ArrowRightLeft, color: "text-emerald-600", bg: "bg-emerald-100/60" },
+    { title: "Stok Menipis", value: stats.stokMenipis, icon: AlertCircle, color: "text-rose-600", bg: "bg-rose-100/60" },
   ];
 
+  if (loading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-10">
-      {/* Header Section dengan animasi smooth */}
+    <div className="space-y-10 pb-10">
+      {/* Header Section */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }} 
         animate={{ opacity: 1, y: 0 }} 
@@ -44,16 +78,38 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Chart Section */}
       <motion.div
          initial={{ opacity: 0, y: 20 }}
          animate={{ opacity: 1, y: 0 }}
          transition={{ delay: 0.5, duration: 0.5 }}
-         className="bg-white border border-slate-200 shadow-sm rounded-3xl p-8 mt-8"
+         className="bg-white border border-slate-200 shadow-sm rounded-3xl p-8"
       >
-          <h3 className="text-xl font-bold text-slate-800 mb-5 tracking-tight">Aktivitas Terbaru</h3>
-          <div className="flex items-center justify-center py-10 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
-            <p className="text-slate-500 font-medium">Belum ada aktivitas transaksi hari ini.</p>
+          <div className="mb-8">
+            <h3 className="text-xl font-bold text-slate-800 tracking-tight">Top 5 Barang Stok Paling Menipis</h3>
+            <p className="text-sm text-slate-500">Segera lakukan restock untuk barang-barang di bawah ini.</p>
           </div>
+          
+          {stats.grafikStok.length > 0 ? (
+            <div className="h-80 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.grafikStok} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="nama_barang" tick={{ fill: '#64748b', fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis tick={{ fill: '#64748b', fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <Tooltip 
+                    cursor={{ fill: '#f1f5f9' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                  <Bar dataKey="stok" fill="#ef4444" radius={[6, 6, 0, 0]} barSize={40} name="Sisa Stok" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-10 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50">
+              <p className="text-slate-500 font-medium">Data barang belum tersedia.</p>
+            </div>
+          )}
       </motion.div>
     </div>
   );

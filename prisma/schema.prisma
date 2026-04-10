@@ -64,6 +64,8 @@ model User {
   nama     String
   password String
   
+  role     String   @default("STAF") // <--- TAMBAHIN BARIS INI
+  
   createdAt DateTime @default(now())
 }
 

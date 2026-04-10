@@ -22,7 +22,13 @@ export async function loginApp(formData: FormData) {
 
     const cookieStore = await cookies();
     
-    cookieStore.set("gudang_session", JSON.stringify({ id: user.id, inisial: user.inisial, nama: user.nama }), { 
+    // PERBAIKAN DI SINI: Tambahin role: user.role ke dalam session
+    cookieStore.set("gudang_session", JSON.stringify({ 
+      id: user.id, 
+      inisial: user.inisial, 
+      nama: user.nama,
+      role: user.role // <-- Ini yang tadi kelewatan bro
+    }), { 
       httpOnly: true, 
       secure: process.env.NODE_ENV === "production", 
       path: "/", 

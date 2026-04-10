@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { FileText, Calendar, User, Building, Tag, Inbox } from "lucide-react";
+import { FileText, Calendar, User, Building, Inbox } from "lucide-react";
+import ExportButton from "./ExportButton"; // <-- Import tombolnya di sini
 
 export default async function Laporan() {
   const riwayat = await prisma.requisitionHeader.findMany({
@@ -9,12 +10,18 @@ export default async function Laporan() {
 
   return (
     <div className="space-y-6 pb-10">
-      <div>
-        <h2 className="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-2">
-          <FileText className="w-8 h-8 text-amber-500" />
-          Laporan Barang Keluar
-        </h2>
-        <p className="text-slate-500">Riwayat pengeluaran stok berdasarkan Media Request.</p>
+      {/* Header dengan Tombol Export */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+            <FileText className="w-8 h-8 text-amber-500" />
+            Laporan Barang Keluar
+          </h2>
+          <p className="text-slate-500">Riwayat pengeluaran stok berdasarkan Media Request.</p>
+        </div>
+        
+        {/* Render tombol export dan lempar data riwayat ke dalamnya */}
+        <ExportButton riwayat={riwayat} />
       </div>
 
       <div className="space-y-4">

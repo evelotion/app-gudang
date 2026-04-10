@@ -10,13 +10,16 @@ export async function loginApp(formData: FormData) {
   const password = formData.get("password") as string;
 
   try {
-    const user = await prisma.user.findUnique({ where: { inisial: inisial.toUpperCase() } });
+    // Tambahan .trim() biar aman dari typo spasi
+    const user = await prisma.user.findUnique({ 
+      where: { inisial: inisial.toUpperCase().trim() } 
+    });
+    
     if (!user) return { success: false, error: "Inisial tidak ditemukan!" };
 
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) return { success: false, error: "Password salah!" };
 
-    // Di Next.js 15+, kita wajib pakai 'await' untuk manggil cookies()
     const cookieStore = await cookies();
     
     cookieStore.set("gudang_session", JSON.stringify({ id: user.id, inisial: user.inisial, nama: user.nama }), { 
@@ -33,7 +36,6 @@ export async function loginApp(formData: FormData) {
 }
 
 export async function logoutApp() {
-  // Pakai 'await' juga di sini
   const cookieStore = await cookies();
   cookieStore.delete("gudang_session");
   

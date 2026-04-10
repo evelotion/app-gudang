@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
+import { logoutApp } from "@/actions/auth";
 
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/" },
@@ -47,9 +48,9 @@ export default function Sidebar() {
         })}
       </nav>
       
-      {/* Tombol Logout Simple di bawah */}
+      {/* Tombol Logout dengan fungsi onClick */}
       <div className="mt-auto pt-6 border-t border-slate-100">
-          <button className="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors text-sm font-medium">
+          <button onClick={() => logoutApp()} className="w-full flex items-center gap-3.5 px-4.5 py-3 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors text-sm font-medium">
               <LogOut className="w-5 h-5"/>
               Keluar Sistem
           </button>

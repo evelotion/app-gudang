@@ -13,12 +13,21 @@ import {
 } from "@tanstack/react-table"
 import { Search, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 
-export function DataTable({ data }: { data: any[] }) {
+// 1. Import Types langsung dari Prisma Client
+import { Barang, Kategori } from "@prisma/client"
+
+// 2. Buat custom Type gabungan Barang dan relasi Kategori
+export type BarangWithKategori = Barang & {
+  kategori: Kategori | null;
+};
+
+// 3. Ganti "any[]" menjadi tipe data yang sudah kita buat
+export function DataTable({ data }: { data: BarangWithKategori[] }) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState("")
 
-  // Definisi Kolom Tabel
-  const columns: ColumnDef<any>[] = [
+  // 4. Update generic pada ColumnDef
+  const columns: ColumnDef<BarangWithKategori>[] = [
     {
       accessorKey: "kode_barang",
       header: "Kode",

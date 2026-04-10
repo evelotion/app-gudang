@@ -42,3 +42,10 @@ export async function logoutApp() {
   
   redirect("/login");
 }
+
+export async function getSession() {
+  const cookieStore = await cookies();
+  const sessionData = cookieStore.get("gudang_session")?.value;
+  if (!sessionData) return null;
+  return JSON.parse(sessionData);
+}

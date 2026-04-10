@@ -9,22 +9,24 @@ type ItemTransaksi = {
 }
 
 export async function createRequisition(data: {
-  no_form: string;
+  media_request: string;
+  no_dokumen: string;
+  tanggal_dokumen: string;
+  cabang: string;
+  tanggal_request: string;
+  jenis_permintaan: string;
   pic_nama: string;
-  departemen: string;
-  keterangan?: string;
   items: ItemTransaksi[];
 }) {
   try {
-    // Jalankan operasi dalam Transaction biar aman (kalau 1 gagal, gagal semua)
     const result = await prisma.$transaction(async (tx) => {
-      // 1. Cek apakah nomor form sudah dipakai
+      // 1. Cek apakah nomor dokumen sudah dipakai
       const existingForm = await tx.requisitionHeader.findUnique({
-        where: { no_form: data.no_form }
+        where: { no_dokumen: data.no_dokumen }
       })
-      if (existingForm) throw new Error("Nomor Form ini sudah pernah diinput!")
+      if (existingForm) throw new Error("Nomor Dokumen ini sudah pernah diinput!")
 
-      // 2. Loop tiap barang untuk cek stok dan kurangi stok
+      // 2. Cek dan potong stok
       for (const item of data.items) {
         const barang = await tx.barang.findUnique({ where: { id: item.barangId } })
         
@@ -33,20 +35,22 @@ export async function createRequisition(data: {
           throw new Error(`Stok ${barang.nama_barang} tidak mencukupi! Sisa: ${barang.stok}`)
         }
 
-        // Potong stok di Master Barang
         await tx.barang.update({
           where: { id: item.barangId },
           data: { stok: { decrement: item.qty } }
         })
       }
 
-      // 3. Simpan Header & Detail Transaksi
+      // 3. Simpan Transaksi dengan Field Baru
       const transaksi = await tx.requisitionHeader.create({
         data: {
-          no_form: data.no_form,
+          media_request: data.media_request,
+          no_dokumen: data.no_dokumen,
+          tanggal_dokumen: new Date(data.tanggal_dokumen), // Convert string ke Date
+          cabang: data.cabang,
+          tanggal_request: new Date(data.tanggal_request), // Convert string ke Date
+          jenis_permintaan: data.jenis_permintaan,
           pic_nama: data.pic_nama,
-          departemen: data.departemen,
-          keterangan: data.keterangan,
           items: {
             create: data.items.map(item => ({
               barangId: item.barangId,
@@ -59,12 +63,64 @@ export async function createRequisition(data: {
       return transaksi
     })
 
-    // Refresh halaman biar UI otomatis update stok terbarunya
     revalidatePath("/master-barang")
     revalidatePath("/barang-keluar")
+    revalidatePath("/laporan")
 
     return { success: true, message: "Form berhasil disimpan dan stok dipotong!", data: result }
 
+  } catch (error: any) {
+    return { success: false, error: error.message || "Terjadi kesalahan sistem" }
+  }
+}
+
+export async function createInbound(data: {
+  no_dokumen: string;
+  tanggal_masuk: string;
+  supplier: string;
+  penerima: string;
+  keterangan?: string;
+  items: ItemTransaksi[];
+}) {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Cek nomor dokumen dobel
+      const existingForm = await tx.inboundHeader.findUnique({
+        where: { no_dokumen: data.no_dokumen }
+      })
+      if (existingForm) throw new Error("Nomor Dokumen/PO ini sudah pernah diinput!")
+
+      // 2. Tambah stok barang (Increment)
+      for (const item of data.items) {
+        await tx.barang.update({
+          where: { id: item.barangId },
+          data: { stok: { increment: item.qty } }
+        })
+      }
+
+      // 3. Simpan Riwayat Barang Masuk
+      const transaksi = await tx.inboundHeader.create({
+        data: {
+          no_dokumen: data.no_dokumen,
+          tanggal_masuk: new Date(data.tanggal_masuk),
+          supplier: data.supplier,
+          penerima: data.penerima,
+          keterangan: data.keterangan,
+          items: {
+            create: data.items.map(item => ({
+              barangId: item.barangId,
+              qty_masuk: item.qty
+            }))
+          }
+        }
+      })
+      return transaksi
+    })
+
+    revalidatePath("/master-barang")
+    revalidatePath("/barang-masuk")
+
+    return { success: true, message: "Sukses! Stok berhasil ditambah.", data: result }
   } catch (error: any) {
     return { success: false, error: error.message || "Terjadi kesalahan sistem" }
   }

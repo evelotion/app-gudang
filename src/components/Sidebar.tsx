@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut, X } from "lucide-react"; 
+// Tambahan icon PackagePlus di sini
+import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut, X, PackagePlus } from "lucide-react"; 
 import { motion } from "framer-motion";
 import { logoutApp } from "@/actions/auth";
 
 const menuItems = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/" },
   { name: "Master Barang", icon: Package, path: "/master-barang" },
+  { name: "Barang Masuk", icon: PackagePlus, path: "/barang-masuk" }, // <-- Menu Baru Barang Masuk
   { name: "Barang Keluar", icon: ArrowRightLeft, path: "/barang-keluar" },
   { name: "Laporan", icon: FileText, path: "/laporan" },
 ];
@@ -35,8 +37,6 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
         {menuItems.map((item) => {
           const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
           
-          // Komentarnya gue pindahin ke sini biar aman (pakai // standar JS)
-          // Tambahin onClick={onCloseMobile} biar sidebar nutup otomatis di HP
           return (
             <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group">
               {isActive && (

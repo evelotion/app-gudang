@@ -25,22 +25,26 @@ model Barang {
   kategori    Kategori @relation(fields: [kategoriId], references: [id])
   
   transaksi   RequisitionDetail[]
+  inbound     InboundDetail[] // <--- TAMBAHIN BARIS INI BRO
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model RequisitionHeader {
-  id          String   @id @default(uuid())
-  no_form     String   @unique
-  tanggal     DateTime @default(now())
-  pic_nama    String
-  departemen  String
-  keterangan  String?
+  id                String   @id @default(uuid())
+  media_request     String
+  no_dokumen        String   @unique
+  tanggal_dokumen   DateTime
+  cabang            String
+  tanggal_request   DateTime
+  jenis_permintaan  String
+  pic_nama          String
+  keterangan        String?
   
-  items       RequisitionDetail[]
+  items             RequisitionDetail[]
 
-  createdAt   DateTime @default(now())
+  createdAt         DateTime @default(now())
 }
 
 model RequisitionDetail {
@@ -61,4 +65,28 @@ model User {
   password String
   
   createdAt DateTime @default(now())
+}
+
+model InboundHeader {
+  id              String   @id @default(uuid())
+  no_dokumen      String   @unique // No PO / Surat Jalan / Nota
+  tanggal_masuk   DateTime
+  supplier        String
+  penerima        String
+  keterangan      String?
+  
+  items           InboundDetail[]
+
+  createdAt       DateTime @default(now())
+}
+
+model InboundDetail {
+  id             String        @id @default(uuid())
+  qty_masuk      Int
+  
+  inboundId      String
+  inbound        InboundHeader @relation(fields: [inboundId], references: [id], onDelete: Cascade)
+  
+  barangId       String
+  barang         Barang        @relation(fields: [barangId], references: [id])
 }

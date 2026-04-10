@@ -1,20 +1,20 @@
 import { prisma } from "@/lib/prisma";
-import { FileText, Calendar, User, Building } from "lucide-react";
+import { FileText, Calendar, User, Building, Tag, Inbox } from "lucide-react";
 
 export default async function Laporan() {
   const riwayat = await prisma.requisitionHeader.findMany({
-    orderBy: { tanggal: 'desc' },
+    orderBy: { createdAt: 'desc' },
     include: { items: { include: { barang: true } } }
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       <div>
         <h2 className="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-2">
           <FileText className="w-8 h-8 text-amber-500" />
           Laporan Barang Keluar
         </h2>
-        <p className="text-slate-500">Riwayat pengeluaran stok berdasarkan Requisition Form.</p>
+        <p className="text-slate-500">Riwayat pengeluaran stok berdasarkan Media Request.</p>
       </div>
 
       <div className="space-y-4">
@@ -25,24 +25,31 @@ export default async function Laporan() {
         ) : (
           riwayat.map((r) => (
             <div key={r.id} className="bg-white shadow-sm border border-slate-200 rounded-2xl p-6 hover:shadow-md transition-shadow">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-indigo-600">{r.no_form}</h3>
-                  <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-slate-500">
-                    <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(r.tanggal))}</span>
-                    <span className="flex items-center gap-1.5"><User className="w-4 h-4" /> PIC: <span className="font-semibold text-slate-700">{r.pic_nama}</span></span>
-                    <span className="flex items-center gap-1.5"><Building className="w-4 h-4" /> Dept: <span className="font-semibold text-slate-700">{r.departemen}</span></span>
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 border-b border-slate-100 pb-4 mb-4">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-xl font-bold text-indigo-600">{r.no_dokumen}</h3>
+                    <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                      {r.jenis_permintaan}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm text-slate-600 mt-2">
+                    <span className="flex items-center gap-2"><Inbox className="w-4 h-4 text-slate-400" /> {r.media_request}</span>
+                    <span className="flex items-center gap-2"><Building className="w-4 h-4 text-slate-400" /> Cabang: <strong className="text-slate-800">{r.cabang}</strong></span>
+                    <span className="flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-400" /> Tgl Req: {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(r.tanggal_request)}</span>
+                    <span className="flex items-center gap-2"><User className="w-4 h-4 text-slate-400" /> PIC: <strong className="text-slate-800">{r.pic_nama}</strong></span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-sm font-semibold text-slate-800 mb-3">Rincian Barang:</h4>
+                <h4 className="text-sm font-semibold text-slate-800 mb-3">Rincian Item Dikeluarkan:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {r.items.map((item) => (
                     <div key={item.id} className="flex items-center justify-between bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200">
                       <span className="text-slate-700 text-sm font-medium">{item.barang.kode_barang} - {item.barang.nama_barang}</span>
-                      <span className="text-indigo-700 font-bold text-sm bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200">
+                      <span className="text-indigo-700 font-bold text-sm bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-sm">
                         {item.qty_diambil} {item.barang.satuan}
                       </span>
                     </div>

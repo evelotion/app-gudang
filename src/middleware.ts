@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
-// Bungkus dalam fungsi biar aman dari build-time crash
+// Bungkus dalam fungsi biar aman dari build-time crash Vercel
 function getSecretKey() {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
@@ -11,8 +11,8 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-// Next.js 16 menggunakan konvensi fungsi 'proxy'
-export async function proxy(request: NextRequest) {
+// Kembalikan nama fungsinya menjadi "middleware" agar sesuai dengan nama file
+export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('gudang_session')?.value
   const pathname = request.nextUrl.pathname
 

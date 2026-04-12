@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || "rahasia_gudang_sync_12345"
-);
+// HAPUS fallback "rahasia_gudang_sync_12345" dan ganti dengan throw error
+if (!process.env.JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is missing in middleware!");
+}
+const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('gudang_session')?.value

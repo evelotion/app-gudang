@@ -6,10 +6,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 
-// Idealnya taruh di .env (misal: JWT_SECRET="super-secret-key-123")
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || "rahasia_gudang_sync_12345"
-);
+// HAPUS fallback "rahasia_gudang_sync_12345" dan ganti dengan throw error
+if (!process.env.JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is missing in auth actions!");
+}
+const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function loginApp(formData: FormData) {
   const inisial = formData.get("inisial") as string;

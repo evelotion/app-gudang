@@ -11,7 +11,6 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-// Kembalikan nama fungsinya menjadi "middleware" agar sesuai dengan nama file
 export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('gudang_session')?.value
   const pathname = request.nextUrl.pathname
@@ -29,15 +28,19 @@ export async function middleware(request: NextRequest) {
   // 3. RBAC dengan JWT
   if (sessionCookie) {
     try {
-      // Verifikasi token pakai fungsi getSecretKey()
+      // Verifikasi token
       const { payload } = await jwtVerify(sessionCookie, getSecretKey());
-      const isStaf = payload.role !== "ADMIN";
       
-      // Kalau dia STAF dan mencoba akses halaman terlarang
+      // SEMENTARA DIMATIKAN BUAT DEVELOPMENT BIAR STAF BISA BUKA SEMUA TAB
+      /*
+      const isStaf = payload.role !== "ADMIN";
       if (isStaf && (pathname.startsWith('/master-barang') || pathname.startsWith('/laporan'))) {
         return NextResponse.redirect(new URL('/', request.url));
       }
+      */
+
     } catch (e) {
+      // Token kedaluwarsa atau tidak valid
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('gudang_session');
       return response;

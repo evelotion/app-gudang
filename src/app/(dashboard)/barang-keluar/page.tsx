@@ -7,36 +7,60 @@ import { getSession } from "@/actions/auth";
 import { ArrowRightLeft, Plus, Trash2, AlertTriangle, Search, PackageOpen } from "lucide-react";
 import { toast } from "sonner";
 
+// --- INTERFACES ---
+interface BarangTipe {
+  id: string;
+  kode_barang: string;
+  nama_barang: string;
+  satuan: string;
+  stok: number;
+}
+
+interface CartItem {
+  barangId: string;
+  kode_barang: string;
+  nama_barang: string;
+  satuan: string;
+  qty: number;
+}
+
+interface FormDataReq {
+  media_request: string;
+  no_dokumen: string;
+  tanggal_dokumen: string;
+  cabang: string;
+  tanggal_request: string;
+  jenis_permintaan: string;
+  pic_nama: string;
+  items: CartItem[];
+}
+
 export default function BarangKeluar() {
-  const [barangList, setBarangList] = useState<any[]>([]);
+  // --- STATES SUDAH DI-TYPE ---
+  const [barangList, setBarangList] = useState<BarangTipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [picNama, setPicNama] = useState("Loading...");
   
-  // State List Barang yang udah di-add ke keranjang
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<CartItem[]>([]);
   
-  // State Khusus Fitur Search Item
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedBarang, setSelectedBarang] = useState<any>(null);
+  const [selectedBarang, setSelectedBarang] = useState<BarangTipe | null>(null);
   const [inputQty, setInputQty] = useState<number>(1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [showConfirm, setShowConfirm] = useState(false);
-  const [formDataCache, setFormDataCache] = useState<any>(null);
+  const [formDataCache, setFormDataCache] = useState<FormDataReq | null>(null);
 
   useEffect(() => {
-    // Ambil list barang
     getSemuaBarang().then((res) => {
-      if (res.success) setBarangList(res.data || []);
+      if (res.success && res.data) setBarangList(res.data as BarangTipe[]);
     });
-    // Ambil data user yang login buat set PIC otomatis
     getSession().then((session) => {
       if (session && session.nama) setPicNama(session.nama);
       else setPicNama("User Tidak Dikenal");
     });
 
-    // Handle klik di luar dropdown untuk nutup search list
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
@@ -46,13 +70,12 @@ export default function BarangKeluar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filter barang berdasarkan ketikan user (Kode atau Nama)
   const filteredBarang = barangList.filter(b => 
     b.nama_barang.toLowerCase().includes(searchQuery.toLowerCase()) || 
     b.kode_barang.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handlePilihBarang = (barang: any) => {
+  const handlePilihBarang = (barang: BarangTipe) => {
     setSelectedBarang(barang);
     setSearchQuery(`${barang.kode_barang} - ${barang.nama_barang}`);
     setShowDropdown(false);
@@ -72,7 +95,6 @@ export default function BarangKeluar() {
       return;
     }
 
-    // Cek kalau barang udah ada di keranjang, jangan didobel
     const isExist = items.find(i => i.barangId === selectedBarang.id);
     if (isExist) {
       toast.error("Barang ini sudah ada di daftar! Hapus dulu jika ingin ubah jumlahnya.");
@@ -87,7 +109,6 @@ export default function BarangKeluar() {
       qty: inputQty 
     }]);
 
-    // Reset input pencarian
     setSelectedBarang(null);
     setSearchQuery("");
     setInputQty(1);
@@ -113,7 +134,7 @@ export default function BarangKeluar() {
       cabang: formData.get("cabang") as string,
       tanggal_request: formData.get("tanggal_request") as string,
       jenis_permintaan: formData.get("jenis_permintaan") as string,
-      pic_nama: picNama, // Ambil dari state yang di-freeze
+      pic_nama: picNama, 
       items: items
     });
     
@@ -121,12 +142,12 @@ export default function BarangKeluar() {
   };
 
   const executeSubmit = async () => {
+    if (!formDataCache) return;
     setShowConfirm(false);
     setLoading(true);
     const loadingToastId = toast.loading("Sedang memproses pemotongan stok...");
 
     try {
-      // PERHATIAN: Nanti API createRequisition harus diupdate biar nerima field baru
       const res = await createRequisition(formDataCache);
       if (res.success) {
         toast.success("Sukses! Stok berhasil dipotong.", { id: loadingToastId });
@@ -142,6 +163,7 @@ export default function BarangKeluar() {
     }
   };
 
+  // ... (Sisa return/UI lo sama persis, nggak gue ubah biar aman)
   return (
     <div className="space-y-6 max-w-5xl mx-auto relative pb-10">
       <div>
@@ -188,8 +210,8 @@ export default function BarangKeluar() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">Jenis Permintaan</label>
-              <select required name="jenis_permintaan" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-colors">
-                <option value="" disabled selected>Pilih Jenis...</option>
+              <select required name="jenis_permintaan" defaultValue="" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-colors">
+                <option value="" disabled>Pilih Jenis...</option>
                 <option value="Existing">Existing</option>
                 <option value="Repeat Order">Repeat Order</option>
                 <option value="New Stock">New Stock</option>
@@ -201,17 +223,15 @@ export default function BarangKeluar() {
                 Nama PIC Pengambil
                 <span className="text-xs bg-slate-200 text-slate-500 px-2 py-0.5 rounded-md font-normal">Auto</span>
               </label>
-              {/* Field ini di-freeze (readOnly & disabled) */}
               <input readOnly disabled value={picNama} className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-500 font-medium cursor-not-allowed" />
             </div>
           </div>
         </div>
 
-        {/* SECTION 2: Daftar Pengambilan Barang (UI Tabel & Search) */}
+        {/* SECTION 2: Daftar Pengambilan Barang */}
         <div className="bg-white shadow-sm border border-slate-200 rounded-2xl p-6 space-y-5">
           <h3 className="text-lg font-bold text-slate-800 border-b border-slate-100 pb-3">Daftar Pengambilan Barang</h3>
           
-          {/* Fitur Search & Add Box */}
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
             <div className="flex-1 w-full space-y-1 relative" ref={dropdownRef}>
               <label className="text-xs font-semibold text-indigo-800 uppercase tracking-wider">Cari Item Gudang</label>
@@ -225,12 +245,11 @@ export default function BarangKeluar() {
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
                     setShowDropdown(true);
-                    setSelectedBarang(null); // Reset pilihan kalau user ngetik ulang
+                    setSelectedBarang(null);
                   }}
                   onFocus={() => setShowDropdown(true)}
                 />
                 
-                {/* Dropdown Rekomendasi */}
                 {showDropdown && searchQuery && (
                   <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                     {filteredBarang.length > 0 ? (
@@ -276,7 +295,6 @@ export default function BarangKeluar() {
             </button>
           </div>
 
-          {/* Tabel Data Items */}
           <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
@@ -318,13 +336,11 @@ export default function BarangKeluar() {
           </div>
         </div>
 
-        {/* Submit Button */}
         <button disabled={loading} type="submit" className="w-full py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-lg transition-colors disabled:opacity-50 shadow-lg shadow-slate-900/20">
           {loading ? "Menyiapkan Data..." : "Simpan Form & Potong Stok"}
         </button>
       </form>
 
-      {/* Modal Konfirmasi */}
       {showConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">

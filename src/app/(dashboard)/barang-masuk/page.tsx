@@ -7,23 +7,48 @@ import { getSession } from "@/actions/auth";
 import { PackagePlus, Plus, Trash2, AlertTriangle, Search, PackageOpen } from "lucide-react";
 import { toast } from "sonner";
 
+// --- INTERFACES ---
+interface BarangTipe {
+  id: string;
+  kode_barang: string;
+  nama_barang: string;
+  satuan: string;
+  stok: number;
+}
+
+interface CartItem {
+  barangId: string;
+  kode_barang: string;
+  nama_barang: string;
+  satuan: string;
+  qty: number;
+}
+
+interface FormDataInbound {
+  no_dokumen: string;
+  tanggal_masuk: string;
+  supplier: string;
+  penerima: string;
+  items: CartItem[];
+}
+
 export default function BarangMasuk() {
-  const [barangList, setBarangList] = useState<any[]>([]);
+  const [barangList, setBarangList] = useState<BarangTipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [penerima, setPenerima] = useState("Loading...");
   
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedBarang, setSelectedBarang] = useState<any>(null);
+  const [selectedBarang, setSelectedBarang] = useState<BarangTipe | null>(null);
   const [inputQty, setInputQty] = useState<number>(1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [showConfirm, setShowConfirm] = useState(false);
-  const [formDataCache, setFormDataCache] = useState<any>(null);
+  const [formDataCache, setFormDataCache] = useState<FormDataInbound | null>(null);
 
   useEffect(() => {
-    getSemuaBarang().then((res) => { if (res.success) setBarangList(res.data || []) });
+    getSemuaBarang().then((res) => { if (res.success && res.data) setBarangList(res.data as BarangTipe[]) });
     getSession().then((session) => { if (session && session.nama) setPenerima(session.nama) });
 
     const handleClickOutside = (e: MouseEvent) => {
@@ -38,7 +63,7 @@ export default function BarangMasuk() {
     b.kode_barang.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handlePilihBarang = (barang: any) => {
+  const handlePilihBarang = (barang: BarangTipe) => {
     setSelectedBarang(barang);
     setSearchQuery(`${barang.kode_barang} - ${barang.nama_barang}`);
     setShowDropdown(false);
@@ -78,6 +103,7 @@ export default function BarangMasuk() {
   };
 
   const executeSubmit = async () => {
+    if (!formDataCache) return;
     setShowConfirm(false); setLoading(true);
     const loadingToastId = toast.loading("Sedang memproses penambahan stok...");
 
@@ -93,6 +119,7 @@ export default function BarangMasuk() {
     finally { setLoading(false) }
   };
 
+  // ... (Sisa return/UI sama persis)
   return (
     <div className="space-y-6 max-w-5xl mx-auto relative pb-10">
       <div>

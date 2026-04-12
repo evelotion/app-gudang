@@ -33,31 +33,25 @@ const InboundSchema = z.object({
 // --- ACTIONS ---
 export async function createRequisition(rawData: z.infer<typeof RequisitionSchema>) {
   try {
-    // 1. Validasi Input pakai Zod
     const data = RequisitionSchema.parse(rawData);
 
     const result = await prisma.$transaction(async (tx) => {
-      // 2. Cek dokumen dobel
       const existingForm = await tx.requisitionHeader.findUnique({
         where: { no_dokumen: data.no_dokumen }
       })
       if (existingForm) throw new Error("Nomor Dokumen ini sudah pernah diinput!")
 
-      // 3. SOLUSI RACE CONDITION: Potong (decrement) stok SECARA ATOMIK terlebih dahulu
       for (const item of data.items) {
         const updatedBarang = await tx.barang.update({
           where: { id: item.barangId },
           data: { stok: { decrement: item.qty } }
         })
 
-        // Jika setelah dipotong stoknya minus, berarti stok asli tidak cukup.
-        // Lempar error untuk me-ROLLBACK seluruh transaksi!
         if (updatedBarang.stok < 0) {
           throw new Error(`Stok ${updatedBarang.nama_barang} tidak mencukupi! Kurang ${Math.abs(updatedBarang.stok)} lagi.`)
         }
       }
 
-      // 4. Simpan Transaksi
       const transaksi = await tx.requisitionHeader.create({
         data: {
           media_request: data.media_request,
@@ -85,12 +79,14 @@ export async function createRequisition(rawData: z.infer<typeof RequisitionSchem
 
     return { success: true, message: "Form berhasil disimpan dan stok dipotong!", data: result }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      // Ganti .errors menjadi .issues
       return { success: false, error: error.issues[0].message }
     }
-    return { success: false, error: error.message || "Terjadi kesalahan sistem" }
+    if (error instanceof Error) {
+      return { success: false, error: error.message }
+    }
+    return { success: false, error: "Terjadi kesalahan sistem" }
   }
 }
 
@@ -133,11 +129,13 @@ export async function createInbound(rawData: z.infer<typeof InboundSchema>) {
     revalidatePath("/barang-masuk")
 
     return { success: true, message: "Sukses! Stok berhasil ditambah.", data: result }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      // Ganti .errors menjadi .issues
       return { success: false, error: error.issues[0].message }
     }
-    return { success: false, error: error.message || "Terjadi kesalahan sistem" }
+    if (error instanceof Error) {
+      return { success: false, error: error.message }
+    }
+    return { success: false, error: "Terjadi kesalahan sistem" }
   }
 }

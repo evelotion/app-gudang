@@ -2,13 +2,17 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
-// HAPUS fallback "rahasia_gudang_sync_12345" dan ganti dengan throw error
-if (!process.env.JWT_SECRET) {
-  throw new Error("FATAL: JWT_SECRET environment variable is missing in middleware!");
+// Bungkus dalam fungsi biar aman dari build-time crash
+function getSecretKey() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("FATAL: JWT_SECRET environment variable is missing!");
+  }
+  return new TextEncoder().encode(secret);
 }
-const SECRET_KEY = new TextEncoder().encode(process.env.JWT_SECRET);
 
-export async function middleware(request: NextRequest) {
+// Next.js 16 menggunakan konvensi fungsi 'proxy'
+export async function proxy(request: NextRequest) {
   const sessionCookie = request.cookies.get('gudang_session')?.value
   const pathname = request.nextUrl.pathname
 
@@ -25,8 +29,8 @@ export async function middleware(request: NextRequest) {
   // 3. RBAC dengan JWT
   if (sessionCookie) {
     try {
-      // Verifikasi token. Kalau gagal (di-modify dari luar), lari ke block catch
-      const { payload } = await jwtVerify(sessionCookie, SECRET_KEY);
+      // Verifikasi token pakai fungsi getSecretKey()
+      const { payload } = await jwtVerify(sessionCookie, getSecretKey());
       const isStaf = payload.role !== "ADMIN";
       
       // Kalau dia STAF dan mencoba akses halaman terlarang
@@ -34,7 +38,6 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/', request.url));
       }
     } catch (e) {
-      // Token tidak valid/di-hack/expired, tendang ke login dan hapus cookie
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('gudang_session');
       return response;

@@ -33,12 +33,13 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
     });
   }, []);
 
+  // Menu dimunculkan semua tanpa pengecekan role untuk sementara
   const menuItems = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/" },
-    ...(user.role === "ADMIN" ? [{ name: "Master Barang", icon: Package, path: "/master-barang" }] : []),
+    { name: "Master Barang", icon: Package, path: "/master-barang" },
     { name: "Barang Masuk", icon: PackagePlus, path: "/barang-masuk" },
     { name: "Barang Keluar", icon: ArrowRightLeft, path: "/barang-keluar" },
-    ...(user.role === "ADMIN" ? [{ name: "Laporan", icon: FileText, path: "/laporan" }] : []),
+    { name: "Laporan", icon: FileText, path: "/laporan" },
   ];
 
   return (
@@ -58,7 +59,6 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
           </div>
         </div>
         
-        {/* Tombol close mobile */}
         {onCloseMobile && (
           <button 
             onClick={onCloseMobile} 
@@ -87,7 +87,6 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
                   : 'text-slate-500 hover:bg-white/50 hover:text-slate-800 font-medium'
               }`}
             >
-              {/* Indikator aktif (Garis di sebelah kiri) */}
               {isActive && (
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-indigo-500 to-purple-600" />
               )}
@@ -106,7 +105,6 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
             {user.inisial}
           </div>
           <div className="flex-1 min-w-0">
-            {/* Class truncate memastikan teks panjang terpotong pakai "..." */}
             <h3 className="font-bold text-sm text-slate-800 truncate" title={user.nama}>{user.nama}</h3>
             <span className="inline-block text-[10px] font-extrabold tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md mt-0.5 border border-indigo-100">
               {user.role}

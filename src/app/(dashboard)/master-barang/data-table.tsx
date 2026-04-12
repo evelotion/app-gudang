@@ -13,74 +13,79 @@ import {
 } from "@tanstack/react-table"
 import { Search, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 
-// 1. Import Types langsung dari Prisma Client
-import { Barang, Kategori } from "@prisma/client"
+// Import murni Barang dari Prisma Client
+import { Barang } from "@prisma/client"
 
-// 2. Buat custom Type gabungan Barang dan relasi Kategori
-export type BarangWithKategori = Barang & {
-  kategori: Kategori | null;
-};
-
-// 3. Ganti "any[]" menjadi tipe data yang sudah kita buat
-export function DataTable({ data }: { data: BarangWithKategori[] }) {
+export function DataTable({ data }: { data: Barang[] }) {
   const [sorting, setSorting] = useState<SortingState>([])
   const [globalFilter, setGlobalFilter] = useState("")
 
-  // 4. Update generic pada ColumnDef
-  const columns: ColumnDef<BarangWithKategori>[] = [
+  const columns: ColumnDef<Barang>[] = [
     {
       accessorKey: "kode_barang",
       header: "Kode",
-      cell: ({ row }) => <span className="font-semibold text-indigo-600">{row.original.kode_barang}</span>,
+      cell: ({ row }) => <span className="font-bold font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md text-xs">{row.original.kode_barang}</span>,
     },
     {
       accessorKey: "nama_barang",
       header: ({ column }) => {
         return (
           <button
-            className="flex items-center gap-2 hover:text-indigo-600 font-semibold transition-colors"
+            className="flex items-center gap-2 hover:text-indigo-600 font-bold transition-colors uppercase text-xs tracking-wider"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             Nama Barang
-            <ArrowUpDown className="w-4 h-4" />
+            <ArrowUpDown className="w-3.5 h-3.5" />
           </button>
         )
       },
+      cell: ({ row }) => <span className="font-semibold text-slate-800">{row.original.nama_barang}</span>,
     },
     {
-      accessorKey: "kategori.nama",
-      header: "Kategori",
-      cell: ({ row }) => (
-        <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs border border-slate-200 font-medium">
-          {row.original.kategori?.nama || "-"}
-        </span>
-      ),
+      accessorKey: "nomorator",
+      header: "Nomorator",
+      cell: ({ row }) => <span className="text-xs font-mono text-slate-500">{row.original.nomorator || "-"}</span>,
     },
     {
       accessorKey: "stok",
       header: ({ column }) => {
         return (
           <button
-            className="flex items-center gap-2 hover:text-indigo-600 font-semibold transition-colors"
+            className="flex items-center gap-2 hover:text-indigo-600 font-bold transition-colors uppercase text-xs tracking-wider"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Stok
-            <ArrowUpDown className="w-4 h-4" />
+            Stok Asli
+            <ArrowUpDown className="w-3.5 h-3.5" />
           </button>
         )
       },
       cell: ({ row }) => {
         const stok = row.original.stok
+        const stokMin = row.original.stok_min
+        const isWarning = stok <= stokMin
+        
         return (
-          <span className={`font-bold ${stok < 10 ? 'text-rose-500' : 'text-emerald-600'}`}>
-            {stok}
-          </span>
+          <div className="flex flex-col">
+             <span className={`font-bold text-base ${isWarning ? 'text-rose-600' : 'text-emerald-600'}`}>
+               {stok} <span className="text-xs font-normal">{row.original.satuan}</span>
+             </span>
+             {isWarning && <span className="text-[10px] text-rose-500 font-medium">Batas Min: {stokMin}</span>}
+          </div>
         )
       },
     },
     {
-      accessorKey: "satuan",
-      header: "Satuan",
+      accessorKey: "harga_satuan",
+      header: "Harga Satuan",
+      cell: ({ row }) => {
+        const harga = row.original.harga_satuan;
+        return <span className="font-medium text-slate-700">Rp {harga.toLocaleString('id-ID')}</span>
+      },
+    },
+    {
+      accessorKey: "supplier",
+      header: "Supplier",
+      cell: ({ row }) => <span className="text-xs text-slate-500 truncate max-w-[150px] inline-block" title={row.original.supplier || ""}>{row.original.supplier || "-"}</span>,
     },
   ]
 
@@ -101,7 +106,6 @@ export function DataTable({ data }: { data: BarangWithKategori[] }) {
 
   return (
     <div className="space-y-4">
-      {/* Fitur Search */}
       <div className="flex items-center gap-2 max-w-sm px-4 py-2.5 bg-white border border-slate-200 rounded-xl shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all">
         <Search className="w-5 h-5 text-slate-400" />
         <input
@@ -112,10 +116,9 @@ export function DataTable({ data }: { data: BarangWithKategori[] }) {
         />
       </div>
 
-      {/* Tabel Data */}
       <div className="bg-white shadow-sm border border-slate-200 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
+          <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap">
             <thead className="bg-slate-50 text-slate-700 border-b border-slate-200">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
@@ -150,7 +153,6 @@ export function DataTable({ data }: { data: BarangWithKategori[] }) {
         </div>
       </div>
 
-      {/* Pagination Controls */}
       <div className="flex items-center justify-between px-2">
         <div className="text-sm text-slate-500 font-medium">
           Halaman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount() || 1}

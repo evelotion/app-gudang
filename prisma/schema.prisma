@@ -7,88 +7,133 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id        String   @id @default(cuid())
+  inisial   String   @unique
+  nama      String
+  password  String
+  role      String   @default("STAF") // ADMIN atau STAF
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Kategori {
-  id          Int      @id @default(autoincrement())
-  nama        String   @unique
-  deskripsi   String?
-  barang      Barang[]
+  id        Int      @id @default(autoincrement())
+  nama      String   @unique
+  deskripsi String?
+  barang    Barang[]
 }
 
 model Barang {
-  id          String   @id @default(uuid())
-  kode_barang String   @unique
-  nama_barang String
-  satuan      String
-  stok        Int      @default(0)
+  id           String   @id @default(cuid())
+  kode_barang  String   @unique
+  nama_barang  String
+  satuan       String
+  stok         Int      @default(0)
   
-  kategoriId  Int
-  kategori    Kategori @relation(fields: [kategoriId], references: [id])
+  // Kolom Penyesuaian Laporan Bank
+  nomorator    String?
+  stok_min     Int      @default(0)
+  harga_satuan Float    @default(0)
+  supplier     String?
   
-  transaksi   RequisitionDetail[]
-  inbound     InboundDetail[] // <--- TAMBAHIN BARIS INI BRO
+  // Relasi ke Kategori
+  kategoriId   Int
+  kategori     Kategori @relation(fields: [kategoriId], references: [id])
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  requisitionItems RequisitionDetail[]
+  inboundItems     InboundDetail[]
 }
 
 model RequisitionHeader {
-  id                String   @id @default(uuid())
-  media_request     String
-  no_dokumen        String   @unique
-  tanggal_dokumen   DateTime
-  cabang            String
-  tanggal_request   DateTime
-  jenis_permintaan  String
-  pic_nama          String
-  keterangan        String?
-  
-  items             RequisitionDetail[]
-
-  createdAt         DateTime @default(now())
+  id               String   @id @default(cuid())
+  media_request    String
+  no_dokumen       String   @unique
+  tanggal_dokumen  DateTime
+  cabang           String
+  tanggal_request  DateTime
+  jenis_permintaan String
+  pic_nama         String
+  createdAt        DateTime @default(now())
+  items            RequisitionDetail[]
 }
 
 model RequisitionDetail {
-  id             String            @id @default(uuid())
-  qty_diambil    Int
-  
-  requisitionId  String
-  requisition    RequisitionHeader @relation(fields: [requisitionId], references: [id], onDelete: Cascade)
-  
-  barangId       String
-  barang         Barang            @relation(fields: [barangId], references: [id])
-}
-
-model User {
-  id       String   @id @default(uuid())
-  inisial  String   @unique
-  nama     String
-  password String
-  
-  role     String   @default("STAF") // <--- TAMBAHIN BARIS INI
-  
-  createdAt DateTime @default(now())
+  id                  String @id @default(cuid())
+  requisitionHeaderId String
+  barangId            String
+  qty_diambil         Int
+  header RequisitionHeader @relation(fields: [requisitionHeaderId], references: [id], onDelete: Cascade)
+  barang Barang            @relation(fields: [barangId], references: [id])
 }
 
 model InboundHeader {
-  id              String   @id @default(uuid())
-  no_dokumen      String   @unique // No PO / Surat Jalan / Nota
-  tanggal_masuk   DateTime
-  supplier        String
-  penerima        String
-  keterangan      String?
-  
-  items           InboundDetail[]
-
-  createdAt       DateTime @default(now())
+  id            String   @id @default(cuid())
+  no_dokumen    String   @unique
+  tanggal_masuk DateTime
+  supplier      String
+  penerima      String
+  keterangan    String?
+  createdAt     DateTime @default(now())
+  items         InboundDetail[]
 }
 
 model InboundDetail {
-  id             String        @id @default(uuid())
-  qty_masuk      Int
+  id              String @id @default(cuid())
+  inboundHeaderId String
+  barangId        String
+  qty_masuk       Int
+  header InboundHeader @relation(fields: [inboundHeaderId], references: [id], onDelete: Cascade)
+  barang Barang        @relation(fields: [barangId], references: [id])
+}
+
+// ==========================================
+// MODUL MANAJEMEN ASET
+// ==========================================
+
+model RegistrasiAset {
+  id                  String   @id @default(cuid())
+  nomorRegisterAset   String   @unique
+  namaAset            String
+  golonganAset        String
+  jumlah              Int
+  tanggalPerolehan    DateTime
+  hargaPerolehan      Decimal  @db.Decimal(15, 2)
+  cabangUnitKerja     String
+  userPengguna        String
+  lokasiPosisiAset    String
   
-  inboundId      String
-  inbound        InboundHeader @relation(fields: [inboundId], references: [id], onDelete: Cascade)
+  // Track Records
+  status              String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  inputerName         String   
+  supervisorName      String?  
   
-  barangId       String
-  barang         Barang        @relation(fields: [barangId], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model HapusBukuAset {
+  id                  String   @id @default(cuid())
+  tanggalHapusBuku    DateTime
+  nomorRegisterAset   String   
+  namaAset            String
+  golonganAset        String
+  jumlah              Int
+  tanggalPerolehan    DateTime
+  hargaPerolehan      Decimal  @db.Decimal(15, 2)
+  akmPenyusutan       Decimal  @db.Decimal(15, 2)
+  nilaiBuku           Decimal  @db.Decimal(15, 2)
+  cabangUnitKerja     String
+  alasanHapusBuku     String
+  
+  // Track Records
+  status              String   @default("PENDING")
+  operatorName        String
+  supervisorName      String?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }

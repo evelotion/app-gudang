@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut, X, PackagePlus } from "lucide-react"; 
+import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut, X, PackagePlus, FilePlus, FileMinus } from "lucide-react"; 
 import { motion } from "framer-motion";
 import { logoutApp, getSession } from "@/actions/auth";
 
@@ -25,12 +25,19 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
     });
   }, []);
 
-  const menuItems = [
+  // Menu Grup 1: Gudang
+  const gudangMenu = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/" },
     ...(user.role === "ADMIN" ? [{ name: "Master Barang", icon: Package, path: "/master-barang" }] : []),
     { name: "Barang Masuk", icon: PackagePlus, path: "/barang-masuk" },
     { name: "Barang Keluar", icon: ArrowRightLeft, path: "/barang-keluar" },
     ...(user.role === "ADMIN" ? [{ name: "Laporan", icon: FileText, path: "/laporan" }] : []),
+  ];
+
+  // Menu Grup 2: Aset
+  const asetMenu = [
+    { name: "Registrasi Baru", icon: FilePlus, path: "/aset/registrasi-baru" },
+    { name: "Hapus Buku", icon: FileMinus, path: "/aset/hapus-buku" },
   ];
 
   return (
@@ -57,36 +64,75 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
-        <div className="px-2 mb-3">
-          <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Main Menu</p>
+        
+        {/* GRUP: GUDANG & LOGISTIK */}
+        <div className="mb-6">
+          <div className="px-2 mb-3">
+            <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Gudang & Logistik</p>
+          </div>
+          <nav className="flex flex-col gap-1.5">
+            {gudangMenu.map((item) => {
+              const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
+              
+              return (
+                <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-indicator"
+                      className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
+                    isActive 
+                      ? 'text-indigo-700 font-semibold' 
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                  }`}>
+                    <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                    <span className="tracking-tight text-sm">{item.name}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-        <nav className="flex flex-col gap-1.5">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
-            
-            return (
-              <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
-                {isActive && (
-                  <motion.div
-                    layoutId="sidebar-indicator"
-                    className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
-                )}
-                <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
-                  isActive 
-                    ? 'text-indigo-700 font-semibold' 
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
-                }`}>
-                  <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                  <span className="tracking-tight text-sm">{item.name}</span>
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
+
+        {/* GRUP: MANAJEMEN ASET */}
+        <div className="mb-6">
+          <div className="px-2 mb-3">
+            <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Manajemen Aset</p>
+          </div>
+          <nav className="flex flex-col gap-1.5">
+            {asetMenu.map((item) => {
+              const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
+              
+              return (
+                <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-indicator"
+                      className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
+                    isActive 
+                      ? 'text-indigo-700 font-semibold' 
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                  }`}>
+                    <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                    <span className="tracking-tight text-sm">{item.name}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
       </div>
       
       {/* User Profile & Logout */}
@@ -96,7 +142,6 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
             {user.inisial}
           </div>
           <div className="flex-1 min-w-0">
-            {/* Yang ini tetep gue truncate karena nama orang panjang-panjang */}
             <p className="text-sm font-bold text-slate-900 truncate">{user.nama}</p>
             <p className="text-xs font-medium text-slate-500 truncate">{user.role}</p>
           </div>

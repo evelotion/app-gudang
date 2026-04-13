@@ -100,6 +100,7 @@ model InboundDetail {
 
 model RegistrasiAset {
   id                  String   @id @default(cuid())
+  tanggalInput        DateTime @default(now()) // <--- TAMBAHAN UNTUK BATCH DATE
   nomorRegisterAset   String   @unique
   namaAset            String
   golonganAset        String
@@ -121,6 +122,7 @@ model RegistrasiAset {
 
 model HapusBukuAset {
   id                  String   @id @default(cuid())
+  tanggalInput        DateTime @default(now()) // <--- TAMBAHAN UNTUK BATCH DATE
   tanggalHapusBuku    DateTime
   nomorRegisterAset   String   
   namaAset            String

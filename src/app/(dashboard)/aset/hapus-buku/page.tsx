@@ -48,7 +48,7 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
          "", ""]
       ],
       theme: "grid",
-      headStyles: { fillColor: [254, 226, 226], textColor: [153, 27, 27], halign: 'center' }, // Tema Merah untuk Hapus Buku
+      headStyles: { fillColor: [254, 226, 226], textColor: [153, 27, 27], halign: 'center' }, 
       styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: { 0: { halign: 'center' }, 4: { halign: 'center' }, 5: { halign: 'right' }, 6: { halign: 'right' }, 7: { halign: 'right' }}
     });
@@ -90,12 +90,14 @@ export default function HapusBukuAsetPage() {
         hargaPerolehan: Number(item.hargaPerolehan),
         akmPenyusutan: Number(item.akmPenyusutan),
         nilaiBuku: Number(item.nilaiBuku),
+        tanggalInput: item.tanggalInput.toISOString(), // <--- BATCH DATE DISIAPKAN
         tanggalHapusBuku: item.tanggalHapusBuku.toISOString(),
         tanggalPerolehan: item.tanggalPerolehan.toISOString(),
       }));
       
       const grouped = safeData.reduce((acc: any, item: any) => {
-        const dateKey = item.tanggalHapusBuku.split('T')[0];
+        // <--- SEKARANG GROUPING BERDASARKAN TANGGAL INPUT (BATCH DATE)
+        const dateKey = item.tanggalInput.split('T')[0];
         if (!acc[dateKey]) acc[dateKey] = [];
         acc[dateKey].push(item);
         return acc;

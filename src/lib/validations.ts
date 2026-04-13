@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const registrasiAsetSchema = z.object({
+  tanggalInput: z.coerce.date(), // <--- TAMBAHAN UNTUK BATCH DATE
   nomorRegisterAset: z.string().min(1, "Nomor Register wajib diisi"),
   namaAset: z.string().min(1, "Nama Aset wajib diisi"),
   golonganAset: z.string().min(1, "Golongan Aset wajib diisi"),
@@ -15,6 +16,7 @@ export const registrasiAsetSchema = z.object({
 });
 
 export const hapusBukuAsetSchema = z.object({
+  tanggalInput: z.coerce.date(), // <--- TAMBAHAN UNTUK BATCH DATE
   tanggalHapusBuku: z.coerce.date(),
   nomorRegisterAset: z.string().min(1, "Nomor Register wajib diisi"),
   namaAset: z.string().min(1, "Nama Aset wajib diisi"),

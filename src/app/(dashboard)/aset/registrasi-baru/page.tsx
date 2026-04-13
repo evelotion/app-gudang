@@ -19,72 +19,94 @@ const formatRupiah = (angka: number) => {
 };
 
 const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
-  const doc = new jsPDF("l", "mm", "a4"); 
+  // --- DEBUGGING PDF START ---
+  console.log("=== MULA PRINT PDF ===");
+  console.log("Tanggal terpilih:", tanggalTerpilih);
+  console.log("Jumlah data yang mau diprint:", dataHarian?.length);
+  console.log("Isi data mentah:", dataHarian);
 
-  // --- HEADER ---
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text("REGISTRASI ASET DAN BARANG NON INVENTARIS BARU", 148, 15, { align: "center" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("PT BANK BCA SYARIAH TAHUN 2026", 148, 22, { align: "center" });
+  if (!dataHarian || dataHarian.length === 0) {
+    alert("Gagal print: Tidak ada data aset untuk tanggal ini.");
+    return;
+  }
+  // --- DEBUGGING PDF END ---
 
-  // --- TABLE DATA ---
-  let totalHarga = 0;
-  const tableData = dataHarian.map((item, index) => {
-    totalHarga += Number(item.hargaPerolehan);
-    return [
-      index + 1,
-      item.nomorRegisterAset,
-      item.namaAset,
-      item.golonganAset,
-      item.jumlah,
-      new Date(item.tanggalPerolehan).toLocaleDateString("id-ID"),
-      formatRupiah(item.hargaPerolehan),
-      item.cabangUnitKerja,
-      item.userPengguna,
-      item.lokasiPosisiAset,
-    ];
-  });
+  try {
+    const doc = new jsPDF("l", "mm", "a4"); 
 
-  // --- RENDER TABLE ---
-  (doc as any).autoTable({
-    startY: 30,
-    head: [["No", "Nomor Register Aset", "Nama Aset", "Golongan Aset", "Jumlah", "Tgl Perolehan", "Harga Perolehan", "Cabang/Unit", "User Pengguna", "Lokasi/Posisi"]],
-    body: tableData,
-    foot: [
-      [{ content: "Total", colSpan: 6, styles: { halign: "center", fontStyle: "bold" } }, 
-       { content: formatRupiah(totalHarga), styles: { halign: "right", fontStyle: "bold" } }, 
-       "", "", ""]
-    ],
-    theme: "grid",
-    headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center' },
-    styles: { fontSize: 8, cellPadding: 2 },
-    columnStyles: {
-      0: { halign: 'center' },
-      4: { halign: 'center' },
-      5: { halign: 'center' },
-      6: { halign: 'right' },
-    }
-  });
+    // --- HEADER ---
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("REGISTRASI ASET DAN BARANG NON INVENTARIS BARU", 148, 15, { align: "center" });
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text("PT BANK BCA SYARIAH TAHUN 2026", 148, 22, { align: "center" });
 
-  // --- FOOTER TANDA TANGAN ---
-  const finalY = (doc as any).lastAutoTable.finalY + 20; 
-  const tglCetak = new Date(tanggalTerpilih).toLocaleDateString("id-ID");
+    // --- TABLE DATA ---
+    let totalHarga = 0;
+    const tableData = dataHarian.map((item, index) => {
+      totalHarga += Number(item.hargaPerolehan);
+      return [
+        index + 1,
+        item.nomorRegisterAset,
+        item.namaAset,
+        item.golonganAset,
+        item.jumlah,
+        new Date(item.tanggalPerolehan).toLocaleDateString("id-ID"),
+        formatRupiah(item.hargaPerolehan),
+        item.cabangUnitKerja,
+        item.userPengguna,
+        item.lokasiPosisiAset,
+      ];
+    });
 
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.text("Supervisi", 100, finalY, { align: "center" });
-  doc.text("Inputer", 200, finalY, { align: "center" });
-  
-  doc.setFont("helvetica", "normal");
-  doc.text("Novianti Siswandi", 100, finalY + 20, { align: "center" });
-  doc.text("Indra Dwi Ananda", 200, finalY + 20, { align: "center" });
-  
-  doc.text(`Tanggal : ${tglCetak}`, 100, finalY + 25, { align: "center" });
-  doc.text(`Tanggal : ${tglCetak}`, 200, finalY + 25, { align: "center" });
+    // --- RENDER TABLE ---
+    (doc as any).autoTable({
+      startY: 30,
+      head: [["No", "Nomor Register Aset", "Nama Aset", "Golongan Aset", "Jumlah", "Tgl Perolehan", "Harga Perolehan", "Cabang/Unit", "User Pengguna", "Lokasi/Posisi"]],
+      body: tableData,
+      foot: [
+        [{ content: "Total", colSpan: 6, styles: { halign: "center", fontStyle: "bold" } }, 
+         { content: formatRupiah(totalHarga), styles: { halign: "right", fontStyle: "bold" } }, 
+         "", "", ""]
+      ],
+      theme: "grid",
+      headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center' },
+      styles: { fontSize: 8, cellPadding: 2 },
+      columnStyles: {
+        0: { halign: 'center' },
+        4: { halign: 'center' },
+        5: { halign: 'center' },
+        6: { halign: 'right' },
+      }
+    });
 
-  doc.save(`Registrasi_Aset_${tanggalTerpilih}.pdf`);
+    // --- FOOTER TANDA TANGAN ---
+    const finalY = (doc as any).lastAutoTable.finalY + 20; 
+    const tglCetak = new Date(tanggalTerpilih).toLocaleDateString("id-ID");
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("Supervisi", 100, finalY, { align: "center" });
+    doc.text("Inputer", 200, finalY, { align: "center" });
+    
+    doc.setFont("helvetica", "normal");
+    doc.text("Novianti Siswandi", 100, finalY + 20, { align: "center" });
+    doc.text("Indra Dwi Ananda", 200, finalY + 20, { align: "center" });
+    
+    doc.text(`Tanggal : ${tglCetak}`, 100, finalY + 25, { align: "center" });
+    doc.text(`Tanggal : ${tglCetak}`, 200, finalY + 25, { align: "center" });
+
+    // Simpan PDF
+    console.log("Merender PDF selesai, mencoba save file...");
+    doc.save(`Registrasi_Aset_${tanggalTerpilih}.pdf`);
+    console.log("=== PRINT PDF SUKSES ===");
+
+  } catch (error) {
+    // --- TANGKAP ERROR JIKA LIBRARY GAGAL ---
+    console.error("=== ERROR FATAL SAAT CETAK PDF ===", error);
+    alert("Terjadi kesalahan sistem saat membuat PDF. Cek console (F12) untuk detailnya.");
+  }
 };
 
 // ==========================================
@@ -101,7 +123,9 @@ export default function RegistrasiAsetPage() {
   const loadData = async () => {
     setIsLoading(true);
     try {
+      console.log("=== MULA LOAD DATA ===");
       const rawData = await getRegistrasiAset();
+      console.log("Data asli dari database:", rawData);
       
       const safeData = (rawData || []).map((item) => ({
         ...item,
@@ -120,6 +144,7 @@ export default function RegistrasiAsetPage() {
         return acc;
       }, {});
 
+      console.log("Data setelah di-grouping per tanggal:", grouped);
       setGroupedData(grouped);
       
       // Otomatis pilih tanggal terbaru saat pertama kali load
@@ -129,7 +154,7 @@ export default function RegistrasiAsetPage() {
       }
       
     } catch (error) {
-      console.error("Gagal memuat data:", error);
+      console.error("Gagal memuat data dari database:", error);
     } finally {
       setIsLoading(false);
     }

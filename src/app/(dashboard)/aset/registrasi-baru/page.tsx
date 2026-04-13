@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import FormRegistrasi from "./form-registrasi";
 import DataTableRegistrasi from "./data-table";
-import { FilePlus } from "lucide-react";
+// Jangan lupa import icon Download dari lucide-react
+import { FilePlus, Download } from "lucide-react"; 
 import { getRegistrasiAset } from "@/actions/aset";
 
 export default function RegistrasiAsetPage() {
@@ -14,19 +15,25 @@ export default function RegistrasiAsetPage() {
 
   const loadData = async () => {
     setIsLoading(true);
-    const rawData = await getRegistrasiAset();
-    
-    // Parsing Decimal & Date agar aman dibaca oleh Client Component
-    const safeData = rawData.map((item) => ({
-      ...item,
-      hargaPerolehan: Number(item.hargaPerolehan),
-      tanggalPerolehan: item.tanggalPerolehan.toISOString(),
-      createdAt: item.createdAt.toISOString(),
-      updatedAt: item.updatedAt.toISOString(),
-    }));
-    
-    setDataAset(safeData);
-    setIsLoading(false);
+    try {
+      const rawData = await getRegistrasiAset();
+      
+      // Parsing Decimal & Date agar aman dibaca oleh Client Component
+      // Fallback (rawData || []) biar aman kalau datanya null
+      const safeData = (rawData || []).map((item) => ({
+        ...item,
+        hargaPerolehan: Number(item.hargaPerolehan),
+        tanggalPerolehan: item.tanggalPerolehan.toISOString(),
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+      }));
+      
+      setDataAset(safeData);
+    } catch (error) {
+      console.error("Gagal memuat data:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -46,13 +53,25 @@ export default function RegistrasiAsetPage() {
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Registrasi Aset Baru</h1>
           <p className="text-sm text-slate-500">Pencatatan aset dan barang non-inventaris baru.</p>
         </div>
+        
         {!showForm && (
-          <button 
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all shadow-sm shadow-indigo-200"
-          >
-            <FilePlus className="w-4 h-4" /> Tambah Registrasi
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Tombol Export Excel */}
+            <a 
+              href="/api/export/registrasi"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all shadow-sm shadow-emerald-200"
+            >
+              <Download className="w-4 h-4" /> Export Excel
+            </a>
+
+            {/* Tombol Tambah */}
+            <button 
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-all shadow-sm shadow-indigo-200"
+            >
+              <FilePlus className="w-4 h-4" /> Tambah Registrasi
+            </button>
+          </div>
         )}
       </div>
 

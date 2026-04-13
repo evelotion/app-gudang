@@ -6,14 +6,16 @@ import { Package, ArrowRightLeft, AlertCircle, Loader2 } from "lucide-react";
 import { getDashboardStats } from "@/actions/dashboard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+// Bikin interface eksplisit biar kode lebih rapi dan reusable
+interface DashboardStats {
+  totalBarang: number;
+  trxHariIni: number;
+  stokMenipis: number;
+  grafikStok: { nama_barang: string; stok: number }[];
+}
+
 export default function Dashboard() {
-  // PERBAIKANNYA DI SINI BRO: Tambahin tipe data eksplisit buat statenya
-  const [stats, setStats] = useState<{
-    totalBarang: number;
-    trxHariIni: number;
-    stokMenipis: number;
-    grafikStok: { nama_barang: string; stok: number }[];
-  }>({
+  const [stats, setStats] = useState<DashboardStats>({
     totalBarang: 0,
     trxHariIni: 0,
     stokMenipis: 0,
@@ -24,7 +26,8 @@ export default function Dashboard() {
   useEffect(() => {
     getDashboardStats().then((res) => {
       if (res.success && res.data) {
-        setStats(res.data);
+        // Tambahin casting biar TypeScript 100% yakin sama bentuk datanya
+        setStats(res.data as DashboardStats);
       }
       setLoading(false);
     });
@@ -53,7 +56,7 @@ export default function Dashboard() {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="space-y-3"
       >
-        <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight">Selamat Datang 👋</h2>
+        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">Selamat Datang 👋</h1>
         <p className="text-lg text-slate-600 max-w-2xl">Berikut ringkasan cepat inventaris gudang Bank Syariah hari ini.</p>
       </motion.div>
 
@@ -67,7 +70,7 @@ export default function Dashboard() {
             transition={{ delay: idx * 0.12, duration: 0.5, ease: "easeOut" }}
             className="p-7 rounded-3xl bg-white border border-slate-200 shadow-sm flex items-center gap-6 hover:shadow-md hover:-translate-y-1 transition-all duration-300"
           >
-            <div className={`p-4.5 rounded-2xl ${card.bg}`}>
+            <div className={`p-4 rounded-2xl ${card.bg}`}>
               <card.icon className={`w-9 h-9 ${card.color}`} />
             </div>
             <div className="space-y-1">
@@ -86,8 +89,8 @@ export default function Dashboard() {
          className="bg-white border border-slate-200 shadow-sm rounded-3xl p-8"
       >
           <div className="mb-8">
-            <h3 className="text-xl font-bold text-slate-800 tracking-tight">Top 5 Barang Stok Paling Menipis</h3>
-            <p className="text-sm text-slate-500">Segera lakukan restock untuk barang-barang di bawah ini.</p>
+            <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Top 5 Barang Stok Paling Menipis</h2>
+            <p className="text-slate-500">Segera lakukan restock untuk barang-barang di bawah ini.</p>
           </div>
           
           {stats.grafikStok.length > 0 ? (

@@ -1,28 +1,39 @@
 import { getSemuaBarang } from "@/actions/barang";
 import { Package } from "lucide-react";
-import { DataTable } from "./data-table"; // Import komponen tabel yang baru kita bikin
+import { DataTable } from "./data-table";
 
 export default async function MasterBarang() {
   const { data: barang, success } = await getSemuaBarang();
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold text-slate-800 mb-2 flex items-center gap-2">
-          <Package className="w-8 h-8 text-indigo-500" />
-          Master Barang
-        </h2>
-        <p className="text-slate-500">Daftar seluruh inventaris aset, cetakan, dan ATK.</p>
+    // Tambahin margin bottom dan max-width biar konsisten sama halaman lain
+    <div className="space-y-8 pb-12 max-w-7xl mx-auto relative">
+      
+      {/* Header Section - Udah pakai ukuran font global yang baru */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 border-b border-slate-100 pb-6 mb-8">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 flex items-center gap-3 tracking-tight">
+            <div className="p-2.5 bg-indigo-100 rounded-2xl">
+              <Package className="w-7 h-7 text-indigo-600" />
+            </div>
+            Master Barang
+          </h1>
+          <p className="text-slate-500 text-sm md:text-base font-medium mt-2">
+            Kelola daftar buku tabungan dan item inventaris lainnya.
+          </p>
+        </div>
       </div>
 
       {/* Validasi kalau gagal fetch API */}
       {!success ? (
-        <div className="p-4 bg-rose-50 text-rose-500 rounded-xl border border-rose-100 font-medium">
-          Gagal memuat data barang dari server.
+        <div className="p-6 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 font-semibold">
+          Gagal memuat data barang dari server. Silakan muat ulang halaman.
         </div>
       ) : (
-        /* Panggil DataTable dan lempar data barangnya ke sana */
-        <DataTable data={barang || []} />
+        /* Tabel dibungkus Card putih biar estetikanya nyambung */
+        <div className="bg-white/90 backdrop-blur-xl shadow-sm border border-slate-100 rounded-3xl p-6 md:p-8">
+          <DataTable data={barang || []} />
+        </div>
       )}
     </div>
   );

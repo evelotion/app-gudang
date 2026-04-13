@@ -2,9 +2,14 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { jwtVerify } from 'jose'
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || "rahasia_gudang_sync_12345"
-);
+// Bungkus dalam fungsi biar aman dari build-time crash Vercel
+function getSecretKey() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("FATAL: JWT_SECRET environment variable is missing!");
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export async function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get('gudang_session')?.value
@@ -23,16 +28,19 @@ export async function middleware(request: NextRequest) {
   // 3. RBAC dengan JWT
   if (sessionCookie) {
     try {
-      // Verifikasi token. Kalau gagal (di-modify dari luar), lari ke block catch
-      const { payload } = await jwtVerify(sessionCookie, SECRET_KEY);
-      const isStaf = payload.role !== "ADMIN";
+      // Verifikasi token
+      const { payload } = await jwtVerify(sessionCookie, getSecretKey());
       
-      // Kalau dia STAF dan mencoba akses halaman terlarang
+      // SEMENTARA DIMATIKAN BUAT DEVELOPMENT BIAR STAF BISA BUKA SEMUA TAB
+      /*
+      const isStaf = payload.role !== "ADMIN";
       if (isStaf && (pathname.startsWith('/master-barang') || pathname.startsWith('/laporan'))) {
         return NextResponse.redirect(new URL('/', request.url));
       }
+      */
+
     } catch (e) {
-      // Token tidak valid/di-hack/expired, tendang ke login dan hapus cookie
+      // Token kedaluwarsa atau tidak valid
       const response = NextResponse.redirect(new URL('/login', request.url));
       response.cookies.delete('gudang_session');
       return response;

@@ -6,10 +6,14 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SignJWT, jwtVerify } from "jose";
 
-// Idealnya taruh di .env (misal: JWT_SECRET="super-secret-key-123")
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.JWT_SECRET || "rahasia_gudang_sync_12345"
-);
+// Pindahkan pengecekan ke dalam fungsi biar nggak crash saat proses "next build"
+function getSecretKey() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    throw new Error("FATAL: JWT_SECRET environment variable is missing!");
+  }
+  return new TextEncoder().encode(secret);
+}
 
 export async function loginApp(formData: FormData) {
   const inisial = formData.get("inisial") as string;
@@ -29,7 +33,7 @@ export async function loginApp(formData: FormData) {
     const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) return { success: false, error: "Password salah!" };
 
-    // 1. Buat Token JWT yang aman
+    // Panggil getSecretKey() di sini
     const token = await new SignJWT({ 
       id: user.id, 
       inisial: user.inisial, 
@@ -38,12 +42,11 @@ export async function loginApp(formData: FormData) {
     })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
-      .setExpirationTime('7d') // expired dalam 7 hari
-      .sign(SECRET_KEY);
+      .setExpirationTime('7d') 
+      .sign(getSecretKey());
 
     const cookieStore = await cookies();
     
-    // 2. Simpan token JWT ke cookie
     cookieStore.set("gudang_session", token, { 
       httpOnly: true, 
       secure: process.env.NODE_ENV === "production", 
@@ -60,7 +63,6 @@ export async function loginApp(formData: FormData) {
 export async function logoutApp() {
   const cookieStore = await cookies();
   cookieStore.delete("gudang_session");
-  
   redirect("/login");
 }
 
@@ -70,8 +72,8 @@ export async function getSession() {
   if (!token) return null;
   
   try {
-    const { payload } = await jwtVerify(token, SECRET_KEY);
-    // PERBAIKAN: Beritahu TypeScript bentuk asli dari payload-nya
+    // Panggil getSecretKey() di sini
+    const { payload } = await jwtVerify(token, getSecretKey());
     return payload as {
       id: string;
       inisial: string;

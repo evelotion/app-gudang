@@ -9,7 +9,7 @@ import { createHapusBukuAset, updateHapusBukuAset } from "@/actions/aset";
 
 // Schema lokal khusus form (semua string) untuk nerima multi-line/paste dari Excel
 const bulkHapusBukuSchema = z.object({
-  tanggalInput: z.string().min(1, "Wajib diisi"), // <--- TAMBAHAN BATCH DATE
+  tanggalInput: z.string().min(1, "Wajib diisi"), 
   tanggalHapusBuku: z.string().min(1, "Wajib diisi"),
   nomorRegisterAset: z.string().min(1, "Wajib diisi"),
   namaAset: z.string().min(1, "Wajib diisi"),
@@ -38,11 +38,11 @@ export default function FormHapusBuku({ initialData, onSuccess, onCancel }: { in
       hargaPerolehan: String(initialData.hargaPerolehan),
       akmPenyusutan: String(initialData.akmPenyusutan),
       nilaiBuku: String(initialData.nilaiBuku),
-      tanggalInput: new Date(initialData.tanggalInput).toISOString().split('T')[0], // <--- DEFAULT BATCH DATE
+      tanggalInput: new Date(initialData.tanggalInput).toISOString().split('T')[0], 
       tanggalHapusBuku: new Date(initialData.tanggalHapusBuku).toISOString().split('T')[0],
       tanggalPerolehan: new Date(initialData.tanggalPerolehan).toISOString().split('T')[0],
     } : {
-      tanggalInput: new Date().toISOString().split('T')[0], // <--- DEFAULT HARI INI
+      tanggalInput: new Date().toISOString().split('T')[0], 
       jumlah: "1", hargaPerolehan: "0", akmPenyusutan: "0", nilaiBuku: "0", operatorName: "Indra Dwi Ananda"
     },
   });
@@ -69,7 +69,7 @@ export default function FormHapusBuku({ initialData, onSuccess, onCancel }: { in
       
       for (let i = 0; i < maxRows; i++) {
         const payload = {
-          tanggalInput: new Date(data.tanggalInput), // <--- TERAPKAN KE SEMUA BARIS YANG DIPASTE
+          tanggalInput: new Date(data.tanggalInput), 
           tanggalHapusBuku: new Date(tglHapus[i] || tglHapus[0] || new Date()),
           nomorRegisterAset: noReg[i] || noReg[0] || "-",
           namaAset: nama[i] || nama[0] || "-",
@@ -123,7 +123,6 @@ export default function FormHapusBuku({ initialData, onSuccess, onCancel }: { in
         <div className="p-6 overflow-y-auto custom-scrollbar">
           <form id="hapusForm" onSubmit={handleSubmit(onSubmit)} className="space-y-5"> 
             
-            {/* UI BATCH DATE BARU (Nuansa Merah/Rose) */}
             <div className="bg-rose-50/50 p-4 rounded-xl border border-rose-100 mb-6">
               <label className="text-sm font-bold text-rose-900 block mb-2">Tanggal Input Sistem (Batch Date)</label>
               <input type="date" {...register("tanggalInput")} className="w-full md:w-1/3 text-sm p-2.5 border border-rose-200 rounded-lg outline-none focus:ring-2 focus:ring-rose-500" />
@@ -145,7 +144,20 @@ export default function FormHapusBuku({ initialData, onSuccess, onCancel }: { in
               <div className="space-y-1 md:col-span-2"><label className="text-xs font-semibold text-slate-700">Alasan Hapus Buku</label><textarea {...register("alasanHapusBuku")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" placeholder="Cth: Rusak Berat" /></div>
               
               <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Nama Operator</label><input {...register("operatorName")} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none bg-slate-50" readOnly /></div>
-              <div className="space-y-1 md:col-span-2"><label className="text-xs font-semibold text-slate-700">Nama Supervisi (Opsional)</label><input {...register("supervisorName")} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" /></div>
+              
+              {/* UBAHAN DI SINI: Input diganti jadi Select Dropdown */}
+              <div className="space-y-1 md:col-span-2">
+                <label className="text-xs font-semibold text-slate-700">Nama Supervisi (Opsional)</label>
+                <select 
+                  {...register("supervisorName")} 
+                  className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 bg-white cursor-pointer"
+                >
+                  <option value="">- Pilih Supervisi -</option>
+                  <option value="Novianti Siswandi">Novianti Siswandi</option>
+                  {/* Tambahkan nama supervisi lain di bawah sini jika perlu */}
+                  {/* <option value="Nama Lain">Nama Lain</option> */}
+                </select>
+              </div>
             </div>
           </form>
         </div>

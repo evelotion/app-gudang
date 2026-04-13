@@ -9,7 +9,7 @@ import { getRegistrasiAset } from "@/actions/aset";
 
 // --- IMPORT LIBRARY PDF ---
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable"; // <--- INI SUDAH DIPERBAIKI
 
 // ==========================================
 // FUNGSI HELPER & CETAK PDF
@@ -60,8 +60,8 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
       ];
     });
 
-    // --- RENDER TABLE ---
-    (doc as any).autoTable({
+    // --- RENDER TABLE --- (CARA PEMANGGILAN SUDAH DIPERBAIKI)
+    autoTable(doc, {
       startY: 30,
       head: [["No", "Nomor Register Aset", "Nama Aset", "Golongan Aset", "Jumlah", "Tgl Perolehan", "Harga Perolehan", "Cabang/Unit", "User Pengguna", "Lokasi/Posisi"]],
       body: tableData,

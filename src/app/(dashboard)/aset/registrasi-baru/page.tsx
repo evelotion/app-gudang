@@ -57,7 +57,10 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
          "", "", ""]
       ],
       theme: "grid",
-      headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'center' },
+      // UBAH WARNA HEAD DAN FOOT DI SINI 👇
+      headStyles: { fillColor: "#8EA9DB", textColor: "#000000", halign: 'center' }, 
+      footStyles: { fillColor: "#8EA9DB", textColor: "#000000" }, 
+      // ===================================
       styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: { 0: { halign: 'center' }, 4: { halign: 'center' }, 5: { halign: 'center' }, 6: { halign: 'right' } }
     });

@@ -1,14 +1,16 @@
-"use client";
+"use client"
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut, X, PackagePlus } from "lucide-react"; 
+// TAHAP 1 FIX: Semua icon yang dibutuhin udah di-import di sini
+import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut, X, PackagePlus, FilePlus, FileMinus, Box } from "lucide-react"; 
 import { motion } from "framer-motion";
 import { logoutApp, getSession } from "@/actions/auth";
 
 export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void }) {
   const pathname = usePathname();
+  
   const [user, setUser] = useState({ role: "STAF", nama: "Memuat...", inisial: "..." });
 
   useEffect(() => {
@@ -23,76 +25,115 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
     });
   }, []);
 
-  // Menu Grup 1: Gudang
+  // TAHAP 2 FIX: Menu sudah dipecah jadi gudangMenu dan asetMenu
   const gudangMenu = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/" },
-    { name: "Master Barang", icon: Package, path: "/master-barang" },
+    ...(user.role === "ADMIN" ? [{ name: "Master Barang", icon: Package, path: "/master-barang" }] : []),
     { name: "Barang Masuk", icon: PackagePlus, path: "/barang-masuk" },
     { name: "Barang Keluar", icon: ArrowRightLeft, path: "/barang-keluar" },
-    { name: "Laporan", icon: FileText, path: "/laporan" },
+    ...(user.role === "ADMIN" ? [{ name: "Laporan", icon: FileText, path: "/laporan" }] : []),
   ];
 
-  // Menu Grup 2: Aset
   const asetMenu = [
     { name: "Registrasi Baru", icon: FilePlus, path: "/aset/registrasi-baru" },
     { name: "Hapus Buku", icon: FileMinus, path: "/aset/hapus-buku" },
   ];
 
   return (
-    <aside className="w-[270px] h-screen bg-white/70 backdrop-blur-3xl border-r border-slate-200/50 shadow-[4px_0_24px_rgba(0,0,0,0.02)] flex flex-col transition-all duration-300 z-50 shrink-0">
-      
-      {/* 1. Header Section - Diperkecil proporsinya */}
-      <div className="px-6 py-8 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-400 flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <Box className="w-4 h-4 text-white" />
+    <div className="w-[280px] h-screen bg-white border-r border-slate-200/80 p-5 flex flex-col z-50 fixed md:relative shrink-0">
+      {/* Brand Header */}
+      <div className="mb-8 px-1 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
+            {/* TAHAP 1 FIX: Menggunakan Box icon */}
+            <Box className="w-4.5 h-4.5 text-white" />
           </div>
-          <div className="flex flex-col">
-            <h1 className="font-black text-lg tracking-tight text-slate-800 leading-none">
+          <div>
+            <h1 className="font-black text-base tracking-tight text-slate-900 leading-none">
               Gudang<span className="text-indigo-600">Sync</span>
             </h1>
-            <p className="text-[8px] font-black tracking-[0.15em] text-slate-400 uppercase mt-1">Bank Syariah</p>
+            <p className="text-[9px] font-bold tracking-wider text-slate-400 uppercase mt-1">Bank Syariah</p>
           </div>
         </div>
-        {onCloseMobile && (
-          <button onClick={onCloseMobile} className="md:hidden p-2 text-slate-400 hover:bg-slate-50 rounded-lg">
-            <X className="w-4 h-4" />
-          </button>
-        )}
+        
+        {/* Tombol close mobile */}
+        <button onClick={onCloseMobile} className="md:hidden p-1.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors shrink-0 ml-2">
+          <X className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto no-scrollbar">
-        <div className="px-2 mb-3">
-          <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Main Menu</p>
+        
+        {/* GRUP: GUDANG & LOGISTIK */}
+        <div className="mb-6">
+          <div className="px-2 mb-3">
+            <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Gudang & Logistik</p>
+          </div>
+          <nav className="flex flex-col gap-1.5">
+            {/* TAHAP 2 FIX: mapping pakai gudangMenu */}
+            {gudangMenu.map((item) => {
+              const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
+              
+              return (
+                <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-indicator"
+                      className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
+                    isActive 
+                      ? 'text-indigo-700 font-semibold' 
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                  }`}>
+                    <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                    <span className="tracking-tight text-sm">{item.name}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
-        <nav className="flex flex-col gap-1.5">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
-            
-            return (
-              <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
-                {isActive && (
-                  <motion.div
-                    layoutId="sidebar-indicator"
-                    className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
-                )}
-                <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
-                  isActive 
-                    ? 'text-indigo-700 font-semibold' 
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
-                }`}>
-                  <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                  <span className="tracking-tight text-sm">{item.name}</span>
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
+
+        {/* GRUP: MANAJEMEN ASET */}
+        <div className="mb-6">
+          <div className="px-2 mb-3">
+            <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Manajemen Aset</p>
+          </div>
+          <nav className="flex flex-col gap-1.5">
+            {asetMenu.map((item) => {
+              const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
+              
+              return (
+                <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
+                  {isActive && (
+                    <motion.div
+                      layoutId="sidebar-indicator"
+                      className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
+                    isActive 
+                      ? 'text-indigo-700 font-semibold' 
+                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                  }`}>
+                    <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                    <span className="tracking-tight text-sm">{item.name}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+
       </div>
       
       {/* User Profile & Logout */}
@@ -102,20 +143,18 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
             {user.inisial}
           </div>
           <div className="flex-1 min-w-0">
-            {/* Yang ini tetep gue truncate karena nama orang panjang-panjang */}
             <p className="text-sm font-bold text-slate-900 truncate">{user.nama}</p>
             <p className="text-xs font-medium text-slate-500 truncate">{user.role}</p>
           </div>
           <button 
-            onClick={() => logoutApp()}
-            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors shrink-0"
-            title="Keluar Aplikasi"
+            onClick={() => logoutApp()} 
+            title="Keluar Sistem"
+            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors opacity-100 sm:opacity-0 sm:group-hover:opacity-100 shrink-0"
           >
-            <LogOut className="w-3.5 h-3.5" />
+            <LogOut className="w-4 h-4"/>
           </button>
         </div>
       </div>
-
-    </aside>
+    </div>
   );
 }

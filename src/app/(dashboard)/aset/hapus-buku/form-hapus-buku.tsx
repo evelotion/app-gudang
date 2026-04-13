@@ -2,142 +2,149 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createHapusBukuAset } from "@/actions/aset";
-import { hapusBukuAsetSchema } from "@/lib/validations";
-import { X, Save, Loader2 } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { X, Save, Loader2, Info } from "lucide-react";
+import { createHapusBukuAset, updateHapusBukuAset } from "@/actions/aset"; 
 
-type FormValues = z.infer<typeof hapusBukuAsetSchema>;
+// Schema lokal khusus form (semua string) untuk nerima multi-line/paste dari Excel
+const bulkHapusBukuSchema = z.object({
+  tanggalHapusBuku: z.string().min(1, "Wajib diisi"),
+  nomorRegisterAset: z.string().min(1, "Wajib diisi"),
+  namaAset: z.string().min(1, "Wajib diisi"),
+  golonganAset: z.string().min(1, "Wajib diisi"),
+  jumlah: z.string().min(1, "Wajib diisi"),
+  tanggalPerolehan: z.string().min(1, "Wajib diisi"),
+  hargaPerolehan: z.string().min(1, "Wajib diisi"),
+  akmPenyusutan: z.string().min(1, "Wajib diisi"),
+  nilaiBuku: z.string().min(1, "Wajib diisi"),
+  cabangUnitKerja: z.string().min(1, "Wajib diisi"),
+  alasanHapusBuku: z.string().min(1, "Wajib diisi"),
+  operatorName: z.string().min(1, "Wajib diisi"),
+  supervisorName: z.string().optional(),
+});
 
-export default function FormHapusBuku({ onSuccess, onCancel }: { onSuccess: () => void, onCancel: () => void }) {
+type FormValues = z.infer<typeof bulkHapusBukuSchema>;
+
+export default function FormHapusBuku({ initialData, onSuccess, onCancel }: { initialData?: any, onSuccess: () => void, onCancel: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(hapusBukuAsetSchema) as any, // <--- TAMBAHKAN as any DI SINI
-    defaultValues: {
-      jumlah: 1,
-      hargaPerolehan: 0,
-      akmPenyusutan: 0,
-      nilaiBuku: 0,
-      operatorName: "Indra Dwi Ananda", // Pre-filled name
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(bulkHapusBukuSchema),
+    defaultValues: initialData ? {
+      ...initialData,
+      jumlah: String(initialData.jumlah),
+      hargaPerolehan: String(initialData.hargaPerolehan),
+      akmPenyusutan: String(initialData.akmPenyusutan),
+      nilaiBuku: String(initialData.nilaiBuku),
+      tanggalHapusBuku: new Date(initialData.tanggalHapusBuku).toISOString().split('T')[0],
+      tanggalPerolehan: new Date(initialData.tanggalPerolehan).toISOString().split('T')[0],
+    } : {
+      jumlah: "1", hargaPerolehan: "0", akmPenyusutan: "0", nilaiBuku: "0", operatorName: "Indra Dwi Ananda"
     },
   });
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
-    const res = await createHapusBukuAset(data);
-    setIsSubmitting(false);
-
-    if (res.success) {
-      alert(res.message); // Bisa diganti toast() kalau lo pakai Sonner
+    
+    try {
+      const splitLines = (str: string) => str.split('\n').map(s => s.trim()).filter(Boolean);
+      
+      const tglHapus = splitLines(data.tanggalHapusBuku);
+      const noReg = splitLines(data.nomorRegisterAset);
+      const nama = splitLines(data.namaAset);
+      const gol = splitLines(data.golonganAset);
+      const jml = splitLines(data.jumlah);
+      const tglPerolehan = splitLines(data.tanggalPerolehan);
+      const hrg = splitLines(data.hargaPerolehan);
+      const akm = splitLines(data.akmPenyusutan);
+      const nBuku = splitLines(data.nilaiBuku);
+      const cabang = splitLines(data.cabangUnitKerja);
+      const alasan = splitLines(data.alasanHapusBuku);
+      
+      const maxRows = Math.max(noReg.length, nama.length, tglHapus.length, hrg.length, alasan.length);
+      
+      for (let i = 0; i < maxRows; i++) {
+        const payload = {
+          tanggalHapusBuku: new Date(tglHapus[i] || tglHapus[0] || new Date()),
+          nomorRegisterAset: noReg[i] || noReg[0] || "-",
+          namaAset: nama[i] || nama[0] || "-",
+          golonganAset: gol[i] || gol[0] || "-",
+          jumlah: Number(jml[i] || jml[0] || 1),
+          tanggalPerolehan: new Date(tglPerolehan[i] || tglPerolehan[0] || new Date()),
+          hargaPerolehan: Number(hrg[i] || hrg[0] || 0),
+          akmPenyusutan: Number(akm[i] || akm[0] || 0),
+          nilaiBuku: Number(nBuku[i] || nBuku[0] || 0),
+          cabangUnitKerja: cabang[i] || cabang[0] || "-",
+          alasanHapusBuku: alasan[i] || alasan[0] || "-",
+          operatorName: data.operatorName,
+          supervisorName: data.supervisorName || ""
+        };
+        
+        if (initialData) {
+          await updateHapusBukuAset(initialData.id, payload as any);
+        } else {
+          await createHapusBukuAset(payload as any);
+        }
+      }
       onSuccess();
-    } else {
-      alert(res.message);
+    } catch (error) {
+      alert("Terjadi kesalahan sistem saat menyimpan data hapus buku.");
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold text-slate-800">Form Catat Hapus Buku Aset</h2>
-        <button onClick={onCancel} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
+      <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] my-auto animate-in fade-in zoom-in-95 duration-200">
+        
+        <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">
+              {initialData ? "Edit Hapus Buku Aset" : "Tambah Hapus Buku (Bulk Insert)"}
+            </h2>
+            {!initialData && (
+              <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
+                <Info className="w-3 h-3" /> Paste data dari kolom Excel langsung ke dalam form di bawah.
+              </p>
+            )}
+          </div>
+          <button onClick={onCancel} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto custom-scrollbar">
+          <form id="hapusForm" onSubmit={handleSubmit(onSubmit)} className="space-y-5"> 
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Tgl Hapus Buku</label><textarea {...register("tanggalHapusBuku")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" placeholder="2026-04-13" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Nomor Register</label><textarea {...register("nomorRegisterAset")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Nama Aset</label><textarea {...register("namaAset")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Golongan</label><textarea {...register("golonganAset")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Jumlah (Qty)</label><textarea {...register("jumlah")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Tgl Perolehan</label><textarea {...register("tanggalPerolehan")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Harga Perolehan (Rp)</label><textarea {...register("hargaPerolehan")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Akm. Penyusutan (Rp)</label><textarea {...register("akmPenyusutan")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Nilai Buku (Rp)</label><textarea {...register("nilaiBuku")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Cabang/Unit Kerja</label><textarea {...register("cabangUnitKerja")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" /></div>
+              <div className="space-y-1 md:col-span-2"><label className="text-xs font-semibold text-slate-700">Alasan Hapus Buku</label><textarea {...register("alasanHapusBuku")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 resize-y" placeholder="Cth: Rusak Berat" /></div>
+              
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Nama Operator</label><input {...register("operatorName")} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none bg-slate-50" readOnly /></div>
+              <div className="space-y-1 md:col-span-2"><label className="text-xs font-semibold text-slate-700">Nama Supervisi (Opsional)</label><input {...register("supervisorName")} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500" /></div>
+            </div>
+          </form>
+        </div>
+
+        <div className="flex justify-end gap-3 p-5 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
+          <button type="button" onClick={onCancel} className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg transition-colors shadow-sm">Batal</button>
+          <button form="hapusForm" type="submit" disabled={isSubmitting} className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors shadow-sm disabled:opacity-70">
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {initialData ? "Simpan Perubahan" : "Simpan Data"}
+          </button>
+        </div>
       </div>
-
-      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4"> {/* <--- TAMBAHKAN as any DI SINI */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          
-          {/* Baris 1 */}
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Tanggal Hapus Buku</label>
-            <input type="date" {...register("tanggalHapusBuku")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" />
-            {errors.tanggalHapusBuku && <span className="text-[10px] text-red-500">{errors.tanggalHapusBuku.message}</span>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Nomor Register Aset</label>
-            <input {...register("nomorRegisterAset")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" placeholder="Contoh: 500/503/00200/2016" />
-            {errors.nomorRegisterAset && <span className="text-[10px] text-red-500">{errors.nomorRegisterAset.message}</span>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Nama Aset</label>
-            <input {...register("namaAset")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" placeholder="Contoh: Printer Computer SP40+" />
-            {errors.namaAset && <span className="text-[10px] text-red-500">{errors.namaAset.message}</span>}
-          </div>
-
-          {/* Baris 2 */}
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Golongan Aset</label>
-            <input {...register("golonganAset")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" placeholder="Contoh: KOMPUTER" />
-            {errors.golonganAset && <span className="text-[10px] text-red-500">{errors.golonganAset.message}</span>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Jumlah</label>
-            <input type="number" {...register("jumlah")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" />
-            {errors.jumlah && <span className="text-[10px] text-red-500">{errors.jumlah.message}</span>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Tanggal Perolehan Awal</label>
-            <input type="date" {...register("tanggalPerolehan")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" />
-            {errors.tanggalPerolehan && <span className="text-[10px] text-red-500">{errors.tanggalPerolehan.message}</span>}
-          </div>
-
-          {/* Baris 3 - Keuangan */}
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Harga Perolehan (Rp)</label>
-            <input type="number" {...register("hargaPerolehan")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" />
-            {errors.hargaPerolehan && <span className="text-[10px] text-red-500">{errors.hargaPerolehan.message}</span>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Akm. Penyusutan (Rp)</label>
-            <input type="number" {...register("akmPenyusutan")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" />
-            {errors.akmPenyusutan && <span className="text-[10px] text-red-500">{errors.akmPenyusutan.message}</span>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Nilai Buku (Rp)</label>
-            <input type="number" {...register("nilaiBuku")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" />
-            {errors.nilaiBuku && <span className="text-[10px] text-red-500">{errors.nilaiBuku.message}</span>}
-          </div>
-
-          {/* Baris 4 - Detail Operasional */}
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Cabang/Unit Kerja</label>
-            <input {...register("cabangUnitKerja")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" placeholder="Contoh: KCP ULS Solo" />
-            {errors.cabangUnitKerja && <span className="text-[10px] text-red-500">{errors.cabangUnitKerja.message}</span>}
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-xs font-medium text-slate-700 mb-1">Alasan Hapus Buku</label>
-            <input {...register("alasanHapusBuku")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" placeholder="Contoh: Trade In / Rusak Total" />
-            {errors.alasanHapusBuku && <span className="text-[10px] text-red-500">{errors.alasanHapusBuku.message}</span>}
-          </div>
-
-          {/* Baris 5 - Track Record */}
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Nama Operator</label>
-            <input {...register("operatorName")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500 bg-slate-50" />
-            {errors.operatorName && <span className="text-[10px] text-red-500">{errors.operatorName.message}</span>}
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1">Nama Supervisi (Opsional)</label>
-            <input {...register("supervisorName")} className="w-full text-sm p-2 border rounded-md outline-none focus:border-red-500" placeholder="Contoh: Novianti Siswandi" />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-3 pt-4 mt-4 border-t">
-          <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors">
-            Batal
-          </button>
-          <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors disabled:opacity-70">
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Simpan Hapus Buku
-          </button>
-        </div>
-      </form>
     </div>
   );
 }

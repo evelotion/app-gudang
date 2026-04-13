@@ -1,18 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Pencil, Trash2, Loader2 } from "lucide-react";
-import { deleteRegistrasiAset } from "@/actions/aset"; // Import fungsi delete
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pencil, Trash2, Loader2, FolderOpen } from "lucide-react";
+import { deleteRegistrasiAset } from "@/actions/aset";
 
-// Helper format
 const formatRupiah = (angka: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
 };
@@ -32,7 +24,7 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
     setDeletingId(null);
 
     if (res.success) {
-      onRefresh(); // Refresh tabel setelah dihapus
+      onRefresh(); 
     } else {
       alert(res.message);
     }
@@ -40,46 +32,56 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
 
   if (!data || data.length === 0) {
     return (
-      <div className="h-64 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-500 bg-slate-50/50">
-        Belum ada data registrasi aset.
+      <div className="h-64 border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center text-slate-500 bg-slate-50">
+        <FolderOpen className="w-10 h-10 text-slate-300 mb-2" />
+        <p className="font-medium">Belum ada data registrasi aset di tanggal ini.</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-md border overflow-x-auto">
+    // BORDER & SHADOW TABEL YANG LEBIH MODERN
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <Table className="min-w-max">
-        <TableHeader className="bg-slate-50">
-          <TableRow>
-            <TableHead className="w-[50px] text-center">No</TableHead>
-            <TableHead>Nomor Register</TableHead>
-            <TableHead>Nama Aset</TableHead>
-            <TableHead>Golongan</TableHead>
-            <TableHead className="text-center">Jumlah</TableHead>
-            <TableHead>Tgl Perolehan</TableHead>
-            <TableHead className="text-right">Harga Perolehan</TableHead>
-            <TableHead>Cabang / Unit</TableHead>
-            <TableHead>User Pengguna</TableHead>
-            <TableHead className="text-center">Aksi</TableHead> {/* Ganti Status jadi Aksi */}
+        <TableHeader className="bg-slate-50/80 border-b border-slate-200">
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-[50px] text-center font-bold text-slate-600">No</TableHead>
+            <TableHead className="font-bold text-slate-600">Nomor Register</TableHead>
+            <TableHead className="font-bold text-slate-600">Nama Aset</TableHead>
+            <TableHead className="font-bold text-slate-600">Golongan</TableHead>
+            <TableHead className="text-center font-bold text-slate-600">Jumlah</TableHead>
+            <TableHead className="font-bold text-slate-600">Tgl Perolehan</TableHead>
+            <TableHead className="text-right font-bold text-slate-600">Harga Perolehan</TableHead>
+            <TableHead className="font-bold text-slate-600">Cabang / Unit</TableHead>
+            <TableHead className="font-bold text-slate-600">User Pengguna</TableHead>
+            <TableHead className="text-center font-bold text-slate-600">Aksi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((row, index) => (
-            <TableRow key={row.id}>
-              <TableCell className="text-center font-medium">{index + 1}</TableCell>
-              <TableCell>{row.nomorRegisterAset}</TableCell>
-              <TableCell>{row.namaAset}</TableCell>
-              <TableCell>{row.golonganAset}</TableCell>
-              <TableCell className="text-center">{row.jumlah}</TableCell>
-              <TableCell>{formatTanggal(row.tanggalPerolehan)}</TableCell>
-              <TableCell className="text-right">{formatRupiah(row.hargaPerolehan)}</TableCell>
-              <TableCell>{row.cabangUnitKerja}</TableCell>
-              <TableCell>{row.userPengguna}</TableCell>
+            <TableRow key={row.id} className="hover:bg-indigo-50/50 transition-colors group">
+              <TableCell className="text-center font-medium text-slate-500">{index + 1}</TableCell>
+              <TableCell className="font-semibold text-slate-800">{row.nomorRegisterAset}</TableCell>
+              <TableCell className="text-slate-700">{row.namaAset}</TableCell>
+              
+              {/* EFEK BADGE UNTUK GOLONGAN ASET */}
               <TableCell>
-                <div className="flex items-center justify-center gap-2">
+                <span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 rounded-md text-xs font-semibold tracking-wide">
+                  {row.golonganAset}
+                </span>
+              </TableCell>
+
+              <TableCell className="text-center font-medium text-slate-700">{row.jumlah}</TableCell>
+              <TableCell className="text-slate-600">{formatTanggal(row.tanggalPerolehan)}</TableCell>
+              <TableCell className="text-right font-semibold text-emerald-600">{formatRupiah(row.hargaPerolehan)}</TableCell>
+              <TableCell className="text-slate-600">{row.cabangUnitKerja}</TableCell>
+              <TableCell className="text-slate-600">{row.userPengguna}</TableCell>
+              
+              <TableCell>
+                <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                   <button 
                     onClick={() => onEdit(row)} 
-                    className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-md transition-colors"
+                    className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
                     title="Edit Data"
                   >
                     <Pencil className="w-4 h-4" />

@@ -169,3 +169,17 @@ export async function updateStatusRequisition(id: string, newStatus: string) {
     return { success: false, error: "Gagal mengupdate status" };
   }
 }
+
+// Tambahkan fungsi ini di Paling Bawah file src/actions/transaksi.ts
+
+export async function getRequisitions() {
+  try {
+    const data = await prisma.requisitionHeader.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { items: { include: { barang: true } } }
+    });
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: "Gagal mengambil data monitoring" };
+  }
+}

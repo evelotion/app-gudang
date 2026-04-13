@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import FormHapusBuku from "./form-hapus-buku";
 import DataTableHapusBuku from "./data-table";
 import { FileMinus, Printer } from "lucide-react"; 
@@ -48,10 +47,8 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
          "", ""]
       ],
       theme: "grid",
-      // UBAH WARNA HEAD DAN FOOT DI SINI 👇
       headStyles: { fillColor: "#8EA9DB", textColor: "#000000", halign: 'center' }, 
       footStyles: { fillColor: "#8EA9DB", textColor: "#000000" }, 
-      // ===================================
       styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: { 0: { halign: 'center' }, 4: { halign: 'center' }, 5: { halign: 'right' }, 6: { halign: 'right' }, 7: { halign: 'right' }}
     });
@@ -93,13 +90,12 @@ export default function HapusBukuAsetPage() {
         hargaPerolehan: Number(item.hargaPerolehan),
         akmPenyusutan: Number(item.akmPenyusutan),
         nilaiBuku: Number(item.nilaiBuku),
-        tanggalInput: item.tanggalInput.toISOString(), // <--- BATCH DATE DISIAPKAN
+        tanggalInput: item.tanggalInput.toISOString(), 
         tanggalHapusBuku: item.tanggalHapusBuku.toISOString(),
         tanggalPerolehan: item.tanggalPerolehan.toISOString(),
       }));
       
       const grouped = safeData.reduce((acc: any, item: any) => {
-        // <--- SEKARANG GROUPING BERDASARKAN TANGGAL INPUT (BATCH DATE)
         const dateKey = item.tanggalInput.split('T')[0];
         if (!acc[dateKey]) acc[dateKey] = [];
         acc[dateKey].push(item);
@@ -122,17 +118,18 @@ export default function HapusBukuAsetPage() {
   const currentData = groupedData[selectedDate] || [];
 
   return (
-    <div className="p-6 space-y-6">
+    // UBAHAN DISINI: Container utama Premium White Card
+    <div className="p-6 md:p-8 m-4 md:m-6 bg-white rounded-2xl shadow-sm border border-slate-200 space-y-8 min-h-[calc(100vh-3rem)]">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Hapus Buku Aset</h1>
-          <p className="text-sm text-slate-500">Pencatatan aset yang dihapus dari pembukuan (Write-off).</p>
+          <p className="text-sm text-slate-500 mt-1">Pencatatan aset yang dihapus dari pembukuan (Write-off).</p>
         </div>
         
         {!showForm && (
           <div className="flex flex-wrap items-center gap-3">
             {Object.keys(groupedData).length > 0 && (
-              <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
+              <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200 shadow-sm">
                 <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent border-none text-sm font-medium py-1.5 pl-3 pr-8 outline-none cursor-pointer">
                   {Object.keys(groupedData).sort().reverse().map(date => (
                     <option key={date} value={date}>{new Date(date).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}</option>
@@ -150,16 +147,26 @@ export default function HapusBukuAsetPage() {
         )}
       </div>
 
-      {showForm && <FormHapusBuku initialData={editingData} onCancel={() => { setShowForm(false); setEditingData(null); }} onSuccess={handleSuccess} />}
+      {showForm && (
+        <div className="pt-2">
+          <FormHapusBuku initialData={editingData} onCancel={() => { setShowForm(false); setEditingData(null); }} onSuccess={handleSuccess} />
+        </div>
+      )}
 
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
-          <CardTitle className="text-base text-slate-800">Daftar Hapus Buku {selectedDate ? `- ${new Date(selectedDate).toLocaleDateString('id-ID', { dateStyle: 'long' })}` : ''}</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {isLoading ? <div className="h-64 flex items-center justify-center text-slate-500">Memuat data...</div> : <DataTableHapusBuku data={currentData} onEdit={handleEdit} onRefresh={loadData} />}
-        </CardContent>
-      </Card>
+      <div className="pt-4">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-800">
+            Daftar Hapus Buku {selectedDate ? `- ${new Date(selectedDate).toLocaleDateString('id-ID', { dateStyle: 'long' })}` : ''}
+          </h2>
+        </div>
+        {isLoading ? (
+          <div className="h-64 flex items-center justify-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            Memuat data...
+          </div>
+        ) : (
+          <DataTableHapusBuku data={currentData} onEdit={handleEdit} onRefresh={loadData} />
+        )}
+      </div>
     </div>
   );
 }

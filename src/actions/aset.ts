@@ -74,3 +74,27 @@ export async function getHapusBukuAset() {
   try { return await prisma.hapusBukuAset.findMany({ orderBy: { createdAt: "desc" }}); } 
   catch (error) { return []; }
 }
+
+// Tambahkan di dalam src/actions/aset.ts
+
+// Hapus Massal Registrasi Aset
+export async function deleteBulkRegistrasiAset(ids: string[]) {
+  try {
+    await prisma.registrasiAset.deleteMany({ where: { id: { in: ids } } });
+    revalidatePath("/aset/registrasi-baru");
+    return { success: true, message: `${ids.length} data berhasil dihapus!` };
+  } catch (error) { 
+    return { success: false, message: "Gagal menghapus data massal." }; 
+  }
+}
+
+// Hapus Massal Hapus Buku Aset
+export async function deleteBulkHapusBukuAset(ids: string[]) {
+  try {
+    await prisma.hapusBukuAset.deleteMany({ where: { id: { in: ids } } });
+    revalidatePath("/aset/hapus-buku");
+    return { success: true, message: `${ids.length} data berhasil dihapus!` };
+  } catch (error) { 
+    return { success: false, message: "Gagal menghapus data massal." }; 
+  }
+}

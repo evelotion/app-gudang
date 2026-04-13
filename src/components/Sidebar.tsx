@@ -3,15 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-// TAHAP 1 FIX: Semua icon yang dibutuhin udah di-import di sini
-import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut, X, PackagePlus, FilePlus, FileMinus, Box } from "lucide-react"; 
-import { motion } from "framer-motion";
+// Tambahan icon ChevronDown
+import { LayoutDashboard, Package, ArrowRightLeft, FileText, LogOut, X, PackagePlus, FilePlus, FileMinus, Box, ChevronDown } from "lucide-react"; 
+// Tambahan AnimatePresence untuk animasi collapse yang smooth
+import { motion, AnimatePresence } from "framer-motion";
 import { logoutApp, getSession } from "@/actions/auth";
 
 export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void }) {
   const pathname = usePathname();
   
   const [user, setUser] = useState({ role: "STAF", nama: "Memuat...", inisial: "..." });
+  
+  // State untuk nyimpen status expand/collapse (default kebuka / true)
+  const [isGudangExpanded, setIsGudangExpanded] = useState(true);
+  const [isAsetExpanded, setIsAsetExpanded] = useState(true);
 
   useEffect(() => {
     getSession().then((session) => {
@@ -25,7 +30,6 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
     });
   }, []);
 
-  // TAHAP 2 FIX: Menu sudah dipecah jadi gudangMenu dan asetMenu
   const gudangMenu = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/" },
     ...(user.role === "ADMIN" ? [{ name: "Master Barang", icon: Package, path: "/master-barang" }] : []),
@@ -45,7 +49,6 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
       <div className="mb-8 px-1 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
-            {/* TAHAP 1 FIX: Menggunakan Box icon */}
             <Box className="w-4.5 h-4.5 text-white" />
           </div>
           <div>
@@ -67,71 +70,100 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
         
         {/* GRUP: GUDANG & LOGISTIK */}
         <div className="mb-6">
-          <div className="px-2 mb-3">
-            <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Gudang & Logistik</p>
-          </div>
-          <nav className="flex flex-col gap-1.5">
-            {/* TAHAP 2 FIX: mapping pakai gudangMenu */}
-            {gudangMenu.map((item) => {
-              const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
-              
-              return (
-                <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
-                  {isActive && (
-                    <motion.div
-                      layoutId="sidebar-indicator"
-                      className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
-                  )}
-                  <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
-                    isActive 
-                      ? 'text-indigo-700 font-semibold' 
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
-                  }`}>
-                    <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                    <span className="tracking-tight text-sm">{item.name}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
+          <button 
+            onClick={() => setIsGudangExpanded(!isGudangExpanded)}
+            className="w-full px-2 mb-3 flex items-center justify-between text-slate-400 hover:text-slate-700 transition-colors group outline-none"
+          >
+            <p className="text-xs font-bold tracking-wider uppercase">Gudang & Logistik</p>
+            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isGudangExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          
+          <AnimatePresence initial={false}>
+            {isGudangExpanded && (
+              <motion.nav 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col gap-1.5 overflow-hidden"
+              >
+                {gudangMenu.map((item) => {
+                  const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
+                  
+                  return (
+                    <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
+                      {isActive && (
+                        <motion.div
+                          layoutId="sidebar-indicator"
+                          className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                        />
+                      )}
+                      <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
+                        isActive 
+                          ? 'text-indigo-700 font-semibold' 
+                          : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                      }`}>
+                        <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                        <span className="tracking-tight text-sm">{item.name}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </motion.nav>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* GRUP: MANAJEMEN ASET */}
         <div className="mb-6">
-          <div className="px-2 mb-3">
-            <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">Manajemen Aset</p>
-          </div>
-          <nav className="flex flex-col gap-1.5">
-            {asetMenu.map((item) => {
-              const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
-              
-              return (
-                <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
-                  {isActive && (
-                    <motion.div
-                      layoutId="sidebar-indicator"
-                      className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
-                  )}
-                  <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
-                    isActive 
-                      ? 'text-indigo-700 font-semibold' 
-                      : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
-                  }`}>
-                    <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                    <span className="tracking-tight text-sm">{item.name}</span>
-                  </div>
-                </Link>
-              );
-            })}
-          </nav>
+          <button 
+            onClick={() => setIsAsetExpanded(!isAsetExpanded)}
+            className="w-full px-2 mb-3 flex items-center justify-between text-slate-400 hover:text-slate-700 transition-colors group outline-none"
+          >
+            <p className="text-xs font-bold tracking-wider uppercase">Manajemen Aset</p>
+            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isAsetExpanded ? 'rotate-180' : ''}`} />
+          </button>
+
+          <AnimatePresence initial={false}>
+            {isAsetExpanded && (
+              <motion.nav 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="flex flex-col gap-1.5 overflow-hidden"
+              >
+                {asetMenu.map((item) => {
+                  const isActive = pathname === item.path || (pathname !== "/" && item.path !== "/" && pathname.startsWith(item.path));
+                  
+                  return (
+                    <Link key={item.path} href={item.path} onClick={onCloseMobile} className="relative group outline-none">
+                      {isActive && (
+                        <motion.div
+                          layoutId="sidebar-indicator"
+                          className="absolute inset-0 bg-indigo-50/80 border border-indigo-100/50 rounded-xl z-0"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                        />
+                      )}
+                      <div className={`relative flex items-center gap-3.5 px-3.5 py-3 rounded-xl transition-all duration-200 z-10 ${
+                        isActive 
+                          ? 'text-indigo-700 font-semibold' 
+                          : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50 font-medium'
+                      }`}>
+                        <item.icon className={`w-5 h-5 transition-colors ${isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                        <span className="tracking-tight text-sm">{item.name}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </motion.nav>
+            )}
+          </AnimatePresence>
         </div>
 
       </div>

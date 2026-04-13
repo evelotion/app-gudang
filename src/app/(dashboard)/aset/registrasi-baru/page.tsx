@@ -57,10 +57,8 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
          "", "", ""]
       ],
       theme: "grid",
-      // UBAH WARNA HEAD DAN FOOT DI SINI 👇
       headStyles: { fillColor: "#8EA9DB", textColor: "#000000", halign: 'center' }, 
       footStyles: { fillColor: "#8EA9DB", textColor: "#000000" }, 
-      // ===================================
       styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: { 0: { halign: 'center' }, 4: { halign: 'center' }, 5: { halign: 'center' }, 6: { halign: 'right' } }
     });
@@ -103,14 +101,13 @@ export default function RegistrasiAsetPage() {
       const safeData = (rawData || []).map((item) => ({
         ...item,
         hargaPerolehan: Number(item.hargaPerolehan),
-        tanggalInput: item.tanggalInput.toISOString(), // <--- BATCH DATE DISIAPKAN
+        tanggalInput: item.tanggalInput.toISOString(), 
         tanggalPerolehan: item.tanggalPerolehan.toISOString(),
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
       }));
       
       const grouped = safeData.reduce((acc: any, item: any) => {
-        // <--- SEKARANG GROUPING BERDASARKAN TANGGAL INPUT (BATCH DATE)
         const dateKey = item.tanggalInput.split('T')[0]; 
         if (!acc[dateKey]) acc[dateKey] = [];
         acc[dateKey].push(item);
@@ -157,17 +154,18 @@ export default function RegistrasiAsetPage() {
   const currentData = groupedData[selectedDate] || [];
 
   return (
-    <div className="p-6 space-y-6">
+    // UBAHAN DISINI: Container utama diubah jadi Premium White Card
+    <div className="p-6 md:p-8 m-4 md:m-6 bg-white rounded-2xl shadow-sm border border-slate-200 space-y-8 min-h-[calc(100vh-3rem)]">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Registrasi Aset Baru</h1>
-          <p className="text-sm text-slate-500">Pencatatan aset dan barang non-inventaris baru.</p>
+          <p className="text-sm text-slate-500 mt-1">Pencatatan aset dan barang non-inventaris baru.</p>
         </div>
         
         {!showForm && (
           <div className="flex flex-wrap items-center gap-3">
             {Object.keys(groupedData).length > 0 && (
-              <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
+              <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200 shadow-sm">
                 <select 
                   value={selectedDate} 
                   onChange={(e) => setSelectedDate(e.target.value)}
@@ -182,7 +180,7 @@ export default function RegistrasiAsetPage() {
                 
                 <button 
                   onClick={() => handlePrintPDF(selectedDate, currentData)}
-                  className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-all"
+                  className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-all"
                 >
                   <Printer className="w-4 h-4" /> Cetak PDF
                 </button>
@@ -203,27 +201,31 @@ export default function RegistrasiAsetPage() {
       </div>
 
       {showForm && (
-        <FormRegistrasi 
-          initialData={editingData} 
-          onCancel={handleCancelForm} 
-          onSuccess={handleSuccess} 
-        />
+        <div className="pt-2">
+          <FormRegistrasi 
+            initialData={editingData} 
+            onCancel={handleCancelForm} 
+            onSuccess={handleSuccess} 
+          />
+        </div>
       )}
 
-      <Card className="border-slate-200 shadow-sm">
-        <CardHeader className="border-b border-slate-100 bg-slate-50/50 pb-4">
-          <CardTitle className="text-base text-slate-800">
+      {/* Tabel dihapus Card-nya biar nyatu sama background parent, kelihatan lebih bersih */}
+      <div className="pt-4">
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-slate-800">
             Daftar Registrasi {selectedDate ? `- ${new Date(selectedDate).toLocaleDateString('id-ID', { dateStyle: 'long' })}` : ''}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          {isLoading ? (
-            <div className="h-64 flex items-center justify-center text-slate-500">Memuat data...</div>
-          ) : (
-             <DataTableRegistrasi data={currentData} onEdit={handleEdit} onRefresh={loadData} />
-          )}
-        </CardContent>
-      </Card>
+          </h2>
+        </div>
+        
+        {isLoading ? (
+          <div className="h-64 flex items-center justify-center text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            Memuat data...
+          </div>
+        ) : (
+            <DataTableRegistrasi data={currentData} onEdit={handleEdit} onRefresh={loadData} />
+        )}
+      </div>
     </div>
   );
 }

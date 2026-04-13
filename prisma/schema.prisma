@@ -8,7 +8,6 @@ datasource db {
 }
 
 model User {
-<<<<<<< HEAD
   id        String   @id @default(cuid())
   inisial   String   @unique
   nama      String
@@ -23,13 +22,6 @@ model Kategori {
   nama      String   @unique
   deskripsi String?
   barang    Barang[]
-=======
-  id       String @id @default(cuid())
-  inisial  String @unique
-  nama     String
-  password String
-  role     String @default("STAF") // ADMIN atau STAF
->>>>>>> 2355206eae5fb124bc7276a5f96f0a6351c3884d
 }
 
 model Barang {
@@ -39,30 +31,19 @@ model Barang {
   satuan       String
   stok         Int      @default(0)
   
-<<<<<<< HEAD
   // Kolom Penyesuaian Laporan Bank
   nomorator    String?
-=======
-  // Kolom Baru Hasil Penyesuaian Laporan Bank
-  nomorator    String?  
->>>>>>> 2355206eae5fb124bc7276a5f96f0a6351c3884d
   stok_min     Int      @default(0)
   harga_satuan Float    @default(0)
   supplier     String?
   
-<<<<<<< HEAD
-  // Relasi ke Kategori
-  kategoriId   Int
-  kategori     Kategori @relation(fields: [kategoriId], references: [id])
+  // Relasi ke Kategori (Dibuat opsional agar data lama tidak error)
+  kategoriId   Int?
+  kategori     Kategori? @relation(fields: [kategoriId], references: [id])
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-=======
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
->>>>>>> 2355206eae5fb124bc7276a5f96f0a6351c3884d
   requisitionItems RequisitionDetail[]
   inboundItems     InboundDetail[]
 }
@@ -77,10 +58,7 @@ model RequisitionHeader {
   jenis_permintaan String
   pic_nama         String
   createdAt        DateTime @default(now())
-<<<<<<< HEAD
-=======
   
->>>>>>> 2355206eae5fb124bc7276a5f96f0a6351c3884d
   items            RequisitionDetail[]
 }
 
@@ -89,10 +67,7 @@ model RequisitionDetail {
   requisitionHeaderId String
   barangId            String
   qty_diambil         Int
-<<<<<<< HEAD
-=======
   
->>>>>>> 2355206eae5fb124bc7276a5f96f0a6351c3884d
   header RequisitionHeader @relation(fields: [requisitionHeaderId], references: [id], onDelete: Cascade)
   barang Barang            @relation(fields: [barangId], references: [id])
 }
@@ -105,10 +80,7 @@ model InboundHeader {
   penerima      String
   keterangan    String?
   createdAt     DateTime @default(now())
-<<<<<<< HEAD
-=======
   
->>>>>>> 2355206eae5fb124bc7276a5f96f0a6351c3884d
   items         InboundDetail[]
 }
 
@@ -117,7 +89,7 @@ model InboundDetail {
   inboundHeaderId String
   barangId        String
   qty_masuk       Int
-<<<<<<< HEAD
+  
   header InboundHeader @relation(fields: [inboundHeaderId], references: [id], onDelete: Cascade)
   barang Barang        @relation(fields: [barangId], references: [id])
 }
@@ -168,9 +140,4 @@ model HapusBukuAset {
   
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-=======
-  
-  header InboundHeader @relation(fields: [inboundHeaderId], references: [id], onDelete: Cascade)
-  barang Barang        @relation(fields: [barangId], references: [id])
->>>>>>> 2355206eae5fb124bc7276a5f96f0a6351c3884d
 }

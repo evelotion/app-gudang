@@ -4,10 +4,8 @@ import { prisma } from "@/lib/prisma"
 
 export async function getDashboardStats() {
   try {
-    // 1. Hitung Total Jenis Barang
     const totalBarang = await prisma.barang.count();
 
-    // 2. Hitung Transaksi Masuk & Keluar Hari Ini
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -19,16 +17,27 @@ export async function getDashboardStats() {
       where: { createdAt: { gte: today } }
     });
 
-    // 3. Hitung Barang yang Stoknya Menipis (Di bawah 10)
     const stokMenipis = await prisma.barang.count({
       where: { stok: { lt: 10 } }
     });
 
-    // 4. Ambil 5 Barang dengan Stok Paling Sedikit untuk Grafik
     const grafikStok = await prisma.barang.findMany({
       orderBy: { stok: 'asc' },
       take: 5,
       select: { nama_barang: true, stok: true }
+    });
+
+    // --- FITUR BARU: Ambil data status PACKING ---
+    const packingCount = await prisma.requisitionHeader.count({
+      where: { status: "PACKING" }
+    });
+
+    const packingList = await prisma.requisitionHeader.findMany({
+      where: { status: "PACKING" },
+      include: { 
+        items: { include: { barang: { select: { nama_barang: true } } } } 
+      },
+      orderBy: { createdAt: 'asc' } // Yang paling lama di-packing muncul duluan
     });
 
     return { 
@@ -37,7 +46,9 @@ export async function getDashboardStats() {
         totalBarang, 
         trxHariIni: trxKeluarHariIni + trxMasukHariIni, 
         stokMenipis,
-        grafikStok
+        grafikStok,
+        packingCount, // Dikirim ke frontend
+        packingList   // Dikirim ke frontend
       },
       error: undefined
     };

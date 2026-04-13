@@ -57,6 +57,10 @@ model RequisitionHeader {
   tanggal_request  DateTime
   jenis_permintaan String
   pic_nama         String
+  
+  // TAMBAHAN BARU: Status Pengiriman
+  status           String   @default("PACKING") // "PACKING" atau "DIKIRIM"
+  
   createdAt        DateTime @default(now())
   
   items            RequisitionDetail[]

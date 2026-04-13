@@ -1,152 +1,122 @@
 import { prisma } from "@/lib/prisma";
-import { FileText, Calendar, User, Building, Inbox, TicketCheck, Archive } from "lucide-react";
+import { Archive, PackagePlus, ArrowRightLeft, FileSpreadsheet } from "lucide-react";
 import ExportButton from "./ExportButton";
+import FilterBulan from "./FilterBulan";
 
-export default async function Laporan() {
-  // 1. Fetch data Master Stok (Untuk Export .PRN)
+// Di Next.js 15+, searchParams adalah Promise
+export default async function Laporan({ searchParams }: { searchParams: Promise<{ bulan?: string }> }) {
+  const params = await searchParams;
+  
+  // Set default bulan ke bulan ini jika tidak ada di URL
+  const today = new Date();
+  const defaultBulan = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const selectedBulan = params.bulan || defaultBulan;
+
+  // Hitung rentang tanggal (Awal bulan s/d Akhir bulan)
+  const [year, month] = selectedBulan.split('-');
+  const startDate = new Date(Number(year), Number(month) - 1, 1);
+  const endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
+
+  // 1. Fetch data Master Stok (Selalu data terkini, tidak terpengaruh bulan)
   const persediaan = await prisma.barang.findMany({
     orderBy: { kode_barang: 'asc' }
   });
 
-  // 2. Fetch data Riwayat Barang Keluar
-  const riwayat = await prisma.requisitionHeader.findMany({
-    orderBy: { createdAt: 'desc' },
+  // 2. Fetch data Barang Masuk (Ter-filter bulan)
+  const riwayatMasuk = await prisma.inboundHeader.findMany({
+    where: { 
+      tanggal_masuk: { gte: startDate, lte: endDate } 
+    },
+    orderBy: { tanggal_masuk: 'desc' },
     include: { items: { include: { barang: true } } }
   });
 
-  return (
-    <div className="space-y-10 pb-12 max-w-7xl mx-auto relative">
-      
-      {/* Dekorasi Background Halus */}
-      <div className="absolute top-0 right-0 w-80 h-80 bg-indigo-500/5 rounded-full blur-3xl -z-10 translate-x-1/2 -translate-y-1/2" />
+  // 3. Fetch data Barang Keluar (Ter-filter bulan)
+  const riwayatKeluar = await prisma.requisitionHeader.findMany({
+    where: { 
+      tanggal_request: { gte: startDate, lte: endDate } 
+    },
+    orderBy: { tanggal_request: 'desc' },
+    include: { items: { include: { barang: true } } }
+  });
 
-      {/* SECTION 1: LAPORAN PERSEDIAAN (MASTER STOK) */}
-      <div className="bg-white/90 backdrop-blur-xl shadow-sm border border-slate-100 rounded-3xl p-8 relative overflow-hidden hover:shadow-lg transition-all duration-300">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-          <div>
-            <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-3">
-              <div className="p-2.5 bg-emerald-100 rounded-2xl">
-                <Archive className="w-6 h-6 text-emerald-600" />
-              </div>
-              Daftar Stok / Persediaan
-            </h2>
-            <p className="text-slate-500 text-sm md:text-base font-medium mt-1">Laporan master data inventaris lengkap format standar bank.</p>
-          </div>
-          
-          <div className="shrink-0">
-            {/* Pakai props yang bener: type dan data */}
-            <ExportButton type="persediaan" data={persediaan} />
-          </div>
+  // Nama bulan untuk display UI
+  const namaBulan = new Date(Number(year), Number(month) - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+
+  return (
+    <div className="space-y-8 pb-12 max-w-6xl mx-auto relative mt-4">
+      {/* Header & Filter Area */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50/50 p-6 rounded-3xl border border-slate-100">
+        <div>
+          <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-3">
+            <FileSpreadsheet className="w-7 h-7 text-indigo-600" />
+            Pusat Unduh Laporan
+          </h1>
+          <p className="text-slate-500 text-sm font-medium mt-1">
+            Unduh rekapitulasi data gudang dalam format Excel.
+          </p>
         </div>
+        
+        {/* Render Client Component Filter Bulan */}
+        <FilterBulan currentBulan={selectedBulan} />
       </div>
 
-      {/* SECTION 2: LAPORAN BARANG KELUAR */}
-      <div>
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5 border-b border-slate-100 pb-6 mb-8">
-          <div>
-            <h2 className="text-2xl font-extrabold text-slate-800 flex items-center gap-3">
-              <div className="p-2.5 bg-amber-100 rounded-2xl">
-                <FileText className="w-6 h-6 text-amber-600" />
-              </div>
-              Riwayat Barang Keluar
-            </h2>
-            <p className="text-slate-500 text-sm md:text-base font-medium mt-1">Histori lengkap pengeluaran stok berdasarkan Media Request.</p>
+      {/* Grid Menu Laporan */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        {/* CARD 1: STOK TERKINI */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all flex flex-col h-full relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Archive className="w-32 h-32" />
           </div>
-          
-          <div className="shrink-0">
-             {/* Pakai props yang bener: type dan data */}
-            <ExportButton type="keluar" data={riwayat} />
+          <div className="p-3 bg-emerald-100 w-fit rounded-xl mb-4">
+            <Archive className="w-6 h-6 text-emerald-600" />
           </div>
+          <h3 className="text-lg font-bold text-slate-800">Persediaan (Stok Terkini)</h3>
+          <p className="text-sm text-slate-500 mt-2 mb-6 flex-1">
+            Laporan *real-time* sisa stok barang, harga perolehan, dan minimum stok.
+          </p>
+          <ExportButton type="persediaan" data={persediaan} />
         </div>
 
-        {/* Daftar Kartu Riwayat */}
-        <div className="space-y-8">
-          {!riwayat.length ? (
-            <div className="p-16 text-center bg-white border border-slate-200 border-dashed rounded-3xl shadow-sm">
-              <Inbox className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500 font-semibold text-lg">Belum ada riwayat transaksi barang keluar.</p>
-            </div>
-          ) : (
-            riwayat.map((r) => (
-              <div key={r.id} className="bg-white/90 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 rounded-3xl p-8 hover:border-indigo-100 hover:shadow-xl transition-all duration-300">
-                
-                {/* Header Kartu */}
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl border border-indigo-100">
-                      <TicketCheck className="w-6 h-6" />
-                    </div>
-                    <div className="flex flex-col">
-                      <h3 className="text-xl font-extrabold text-indigo-700 tracking-tight">{r.no_dokumen}</h3>
-                      <p className="text-xs text-slate-400 font-mono mt-0.5">Dibuat: {new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(r.createdAt)}</p>
-                    </div>
-                  </div>
-                  <span className="px-4 py-1.5 rounded-xl text-xs font-extrabold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
-                    {r.jenis_permintaan}
-                  </span>
-                </div>
-
-                {/* Meta Info Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6 bg-slate-50 border border-slate-100 rounded-2xl mb-8">
-                  <div className="flex items-center gap-3">
-                    <Inbox className="w-5 h-5 text-slate-400 shrink-0" />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Media Request</span>
-                      <span className="text-slate-900 font-bold text-sm truncate" title={r.media_request}>{r.media_request}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Building className="w-5 h-5 text-slate-400 shrink-0" />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Cabang / Unit</span>
-                      <span className="text-slate-900 font-bold text-sm truncate" title={r.cabang}>{r.cabang}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-slate-400 shrink-0" />
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Tgl Request</span>
-                      <span className="text-slate-900 font-bold text-sm">{new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(r.tanggal_request)}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <User className="w-5 h-5 text-slate-400 shrink-0" />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">PIC Pengambil</span>
-                      <span className="text-slate-900 font-bold text-sm truncate" title={r.pic_nama}>{r.pic_nama}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Rincian Item */}
-                <div>
-                  <h4 className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-4 px-1">Rincian Item Dikeluarkan</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {r.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between gap-4 p-5 bg-white border border-slate-100 rounded-2xl shadow-sm">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center justify-center font-bold text-indigo-600 text-lg shadow-inner">
-                            {item.qty_diambil}
-                          </div>
-                          <div className="flex flex-col min-w-0">
-                            <span className="text-slate-800 font-bold text-sm truncate" title={item.barang.nama_barang}>
-                              {item.barang.nama_barang}
-                            </span>
-                            <span className="text-[11px] font-mono text-slate-400 mt-1">Kode: {item.barang.kode_barang}</span>
-                          </div>
-                        </div>
-                        <span className="shrink-0 inline-block px-3 py-1.5 rounded-lg text-xs font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100">
-                          {item.barang.satuan}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-            ))
-          )}
+        {/* CARD 2: BARANG MASUK */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all flex flex-col h-full relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <PackagePlus className="w-32 h-32" />
+          </div>
+          <div className="p-3 bg-blue-100 w-fit rounded-xl mb-4">
+            <PackagePlus className="w-6 h-6 text-blue-600" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-800">Laporan Barang Masuk</h3>
+          <p className="text-sm text-slate-500 mt-2 mb-4 flex-1">
+            Rekap histori barang masuk dari Supplier untuk periode <strong className="text-slate-700">{namaBulan}</strong>.
+          </p>
+          <div className="flex items-center justify-between mb-4 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-xs font-bold text-slate-400">Total Transaksi</span>
+            <span className="text-sm font-black text-blue-600">{riwayatMasuk.length}</span>
+          </div>
+          <ExportButton type="masuk" data={riwayatMasuk} disabled={riwayatMasuk.length === 0} />
         </div>
+
+        {/* CARD 3: BARANG KELUAR */}
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all flex flex-col h-full relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <ArrowRightLeft className="w-32 h-32" />
+          </div>
+          <div className="p-3 bg-amber-100 w-fit rounded-xl mb-4">
+            <ArrowRightLeft className="w-6 h-6 text-amber-600" />
+          </div>
+          <h3 className="text-lg font-bold text-slate-800">Laporan Barang Keluar</h3>
+          <p className="text-sm text-slate-500 mt-2 mb-4 flex-1">
+            Rekap distribusi barang ke Cabang/Unit Kerja untuk periode <strong className="text-slate-700">{namaBulan}</strong>.
+          </p>
+          <div className="flex items-center justify-between mb-4 px-3 py-2 bg-slate-50 rounded-lg border border-slate-100">
+            <span className="text-xs font-bold text-slate-400">Total Transaksi</span>
+            <span className="text-sm font-black text-amber-600">{riwayatKeluar.length}</span>
+          </div>
+          <ExportButton type="keluar" data={riwayatKeluar} disabled={riwayatKeluar.length === 0} />
+        </div>
+
       </div>
     </div>
   );

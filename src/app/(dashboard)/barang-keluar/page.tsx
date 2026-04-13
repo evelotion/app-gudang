@@ -33,6 +33,7 @@ interface FormDataReq {
   cabang: string;
   tanggal_request: string;
   jenis_permintaan: string;
+  status: string; // <--- TAMBAHAN: Interface untuk Status
   pic_nama: string;
   items: CartItem[];
 }
@@ -129,6 +130,7 @@ export default function BarangKeluar() {
       cabang: formData.get("cabang") as string,
       tanggal_request: formData.get("tanggal_request") as string,
       jenis_permintaan: formData.get("jenis_permintaan") as string,
+      status: formData.get("status") as string, // <--- TAMBAHAN: Tangkap nilai status
       pic_nama: picNama, 
       items: items
     });
@@ -197,7 +199,8 @@ export default function BarangKeluar() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* UBAHAN DI SINI: GRID DIJADIKAN 3 KOLOM */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700">Jenis Permintaan</label>
               <select required name="jenis_permintaan" defaultValue="" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-colors shadow-sm">
@@ -208,6 +211,16 @@ export default function BarangKeluar() {
                 <option value="Non Stock">Non Stock</option>
               </select>
             </div>
+            
+            {/* TAMBAHAN BARU: DROPDOWN STATUS */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-700">Status Fisik Barang</label>
+              <select required name="status" defaultValue="PACKING" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-indigo-500/50 outline-none transition-colors shadow-sm font-bold cursor-pointer">
+                <option value="PACKING">📦 Sedang di-Packing</option>
+                <option value="DIKIRIM">🚚 Sudah Dikirim / Di-pickup</option>
+              </select>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-700 flex items-center justify-between">
                 Nama PIC Pengambil <span className="text-xs bg-slate-200 text-slate-500 px-2 py-0.5 rounded-md font-normal">Auto</span>

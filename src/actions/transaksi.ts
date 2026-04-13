@@ -26,6 +26,7 @@ const RequisitionSchema = z.object({
   tanggal_request: z.string().min(1, "Tanggal request tidak valid"),
   jenis_permintaan: z.string().min(1, "Jenis permintaan wajib diisi"),
   pic_nama: z.string().min(1, "Nama PIC wajib diisi"),
+  status: z.string().default("PACKING"), // <--- TAMBAHAN: Validasi status
   items: z.array(ItemRequisitionSchema).min(1, "Minimal pilih 1 barang")
 })
 
@@ -73,6 +74,7 @@ export async function createRequisition(rawData: unknown) {
           tanggal_request: new Date(data.tanggal_request),
           jenis_permintaan: data.jenis_permintaan,
           pic_nama: data.pic_nama,
+          status: data.status, // <--- TAMBAHAN: Simpan status ke database
           items: {
             create: data.items.map(item => ({
               barangId: item.barangId,
@@ -85,6 +87,7 @@ export async function createRequisition(rawData: unknown) {
       return transaksi
     })
 
+    revalidatePath("/") // Revalidate dashboard agar list packing update
     revalidatePath("/master-barang")
     revalidatePath("/barang-keluar")
     revalidatePath("/laporan")
@@ -146,5 +149,23 @@ export async function createInbound(rawData: unknown) {
     if (error instanceof z.ZodError) return { success: false, error: error.issues[0].message }
     if (error instanceof Error) return { success: false, error: error.message }
     return { success: false, error: "Terjadi kesalahan sistem" }
+  }
+}
+
+// --- TAMBAHAN BARU: FUNGSI UNTUK UPDATE STATUS PACKING KE DIKIRIM ---
+export async function updateStatusRequisition(id: string, newStatus: string) {
+  try {
+    await prisma.requisitionHeader.update({
+      where: { id },
+      data: { status: newStatus }
+    });
+    
+    // Refresh halaman dashboard dan barang keluar biar datanya realtime
+    revalidatePath("/");
+    revalidatePath("/barang-keluar");
+    
+    return { success: true, message: "Status berhasil diupdate!" };
+  } catch (error) {
+    return { success: false, error: "Gagal mengupdate status" };
   }
 }

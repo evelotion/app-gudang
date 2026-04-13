@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,26 +9,35 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Pencil, Trash2, Loader2 } from "lucide-react";
+import { deleteRegistrasiAset } from "@/actions/aset"; // Import fungsi delete
 
-// Helper untuk format Rupiah
+// Helper format
 const formatRupiah = (angka: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(angka);
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
 };
 
-// Helper untuk format Tanggal
 const formatTanggal = (tanggal: string) => {
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(tanggal));
+  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(tanggal));
 };
 
-export default function DataTableRegistrasi({ data }: { data: any[] }) {
+export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data: any[], onEdit: (item: any) => void, onRefresh: () => void }) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus data aset ini?")) return;
+    
+    setDeletingId(id);
+    const res = await deleteRegistrasiAset(id);
+    setDeletingId(null);
+
+    if (res.success) {
+      onRefresh(); // Refresh tabel setelah dihapus
+    } else {
+      alert(res.message);
+    }
+  };
+
   if (!data || data.length === 0) {
     return (
       <div className="h-64 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-slate-500 bg-slate-50/50">
@@ -50,7 +60,7 @@ export default function DataTableRegistrasi({ data }: { data: any[] }) {
             <TableHead className="text-right">Harga Perolehan</TableHead>
             <TableHead>Cabang / Unit</TableHead>
             <TableHead>User Pengguna</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead className="text-center">Aksi</TableHead> {/* Ganti Status jadi Aksi */}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -66,9 +76,23 @@ export default function DataTableRegistrasi({ data }: { data: any[] }) {
               <TableCell>{row.cabangUnitKerja}</TableCell>
               <TableCell>{row.userPengguna}</TableCell>
               <TableCell>
-                <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded-full font-medium">
-                  {row.status}
-                </span>
+                <div className="flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => onEdit(row)} 
+                    className="p-1.5 text-blue-600 hover:bg-blue-100 rounded-md transition-colors"
+                    title="Edit Data"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleDelete(row.id)} 
+                    disabled={deletingId === row.id}
+                    className="p-1.5 text-rose-600 hover:bg-rose-100 rounded-md transition-colors disabled:opacity-50"
+                    title="Hapus Data"
+                  >
+                    {deletingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
+                </div>
               </TableCell>
             </TableRow>
           ))}

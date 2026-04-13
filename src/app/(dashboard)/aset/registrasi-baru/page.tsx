@@ -114,18 +114,16 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
 // ==========================================
 export default function RegistrasiAsetPage() {
   const [showForm, setShowForm] = useState(false);
+  const [editingData, setEditingData] = useState<any>(null); // State untuk nyimpen data yang diedit
   const [isLoading, setIsLoading] = useState(true);
   
-  // State baru untuk Grouping berdasarkan Tanggal
   const [groupedData, setGroupedData] = useState<Record<string, any[]>>({});
   const [selectedDate, setSelectedDate] = useState<string>("");
 
   const loadData = async () => {
     setIsLoading(true);
     try {
-      console.log("=== MULA LOAD DATA ===");
       const rawData = await getRegistrasiAset();
-      console.log("Data asli dari database:", rawData);
       
       const safeData = (rawData || []).map((item) => ({
         ...item,
@@ -135,22 +133,20 @@ export default function RegistrasiAsetPage() {
         updatedAt: item.updatedAt.toISOString(),
       }));
       
-      // LOGIKA PENGELOMPOKAN DATA BERDASARKAN TANGGAL PEROLEHAN
       const grouped = safeData.reduce((acc: any, item: any) => {
-        // Ambil bagian tanggalnya saja (YYYY-MM-DD)
         const dateKey = item.tanggalPerolehan.split('T')[0];
         if (!acc[dateKey]) acc[dateKey] = [];
         acc[dateKey].push(item);
         return acc;
       }, {});
 
-      console.log("Data setelah di-grouping per tanggal:", grouped);
       setGroupedData(grouped);
       
-      // Otomatis pilih tanggal terbaru saat pertama kali load
       const availableDates = Object.keys(grouped).sort().reverse();
       if (availableDates.length > 0) {
         setSelectedDate(availableDates[0]);
+      } else {
+        setSelectedDate(""); // Reset kalau data kosong
       }
       
     } catch (error) {
@@ -164,12 +160,26 @@ export default function RegistrasiAsetPage() {
     loadData();
   }, []);
 
+  // Fungsi kalau sukses input/edit
   const handleSuccess = () => {
     setShowForm(false);
+    setEditingData(null);
     loadData(); 
   };
 
-  // Data yang akan ditampilkan di tabel berdasarkan tanggal yang dipilih
+  // Fungsi batal/tutup form
+  const handleCancelForm = () => {
+    setShowForm(false);
+    setEditingData(null);
+  };
+
+  // Fungsi pas tombol "Edit" di tabel diklik
+  const handleEdit = (item: any) => {
+    setEditingData(item);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll ke atas pas mau ngedit
+  };
+
   const currentData = groupedData[selectedDate] || [];
 
   return (
@@ -183,8 +193,6 @@ export default function RegistrasiAsetPage() {
         
         {!showForm && (
           <div className="flex flex-wrap items-center gap-3">
-            
-            {/* Opsi Pilih Tanggal & Tombol Cetak PDF (Muncul kalau ada data) */}
             {Object.keys(groupedData).length > 0 && (
               <div className="flex items-center gap-2 bg-white p-1 rounded-lg border shadow-sm">
                 <select 
@@ -209,7 +217,10 @@ export default function RegistrasiAsetPage() {
             )}
 
             <button 
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                setEditingData(null); // Pastikan state edit kosong pas bikin baru
+                setShowForm(true);
+              }}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm"
             >
               <FilePlus className="w-4 h-4" /> Tambah Registrasi
@@ -218,9 +229,13 @@ export default function RegistrasiAsetPage() {
         )}
       </div>
 
-      {/* Form Input */}
+      {/* Form Input (Muncul saat Tambah atau Edit) */}
       {showForm && (
-        <FormRegistrasi onCancel={() => setShowForm(false)} onSuccess={handleSuccess} />
+        <FormRegistrasi 
+          initialData={editingData} 
+          onCancel={handleCancelForm} 
+          onSuccess={handleSuccess} 
+        />
       )}
 
       {/* Area Tabel */}
@@ -234,7 +249,8 @@ export default function RegistrasiAsetPage() {
           {isLoading ? (
             <div className="h-64 flex items-center justify-center text-slate-500">Memuat data...</div>
           ) : (
-             <DataTableRegistrasi data={currentData} />
+            // Kita passing prop onEdit dan onRefresh ke DataTable
+             <DataTableRegistrasi data={currentData} onEdit={handleEdit} onRefresh={loadData} />
           )}
         </CardContent>
       </Card>

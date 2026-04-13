@@ -6,37 +6,40 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { X, Save, Loader2 } from "lucide-react";
 
-// HANYA IMPORT FUNGSI DARI ACTIONS
-import { createRegistrasiAset } from "@/actions/aset";
-
-// HANYA IMPORT SCHEMA DARI VALIDATIONS
+// Import update & create action
+import { createRegistrasiAset, updateRegistrasiAset } from "@/actions/aset"; 
 import { registrasiAsetSchema } from "@/lib/validations";
 
 type FormValues = z.infer<typeof registrasiAsetSchema>;
 
-export default function FormRegistrasi({ onSuccess, onCancel }: { onSuccess: () => void, onCancel: () => void }) {
+// Tambahkan prop initialData
+export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { initialData?: any, onSuccess: () => void, onCancel: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(registrasiAsetSchema) as any, // <--- TAMBAHKAN as any DI SINI
-    defaultValues: {
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(registrasiAsetSchema) as any,
+    // Kalau ada initialData (mode edit), set nilai defaultnya
+    defaultValues: initialData ? {
+      ...initialData,
+      tanggalPerolehan: new Date(initialData.tanggalPerolehan).toISOString().split('T')[0]
+    } : {
       jumlah: 1,
       hargaPerolehan: 0,
-      inputerName: "Indra Dwi Ananda", // Default value biar cepat
+      inputerName: "Indra Dwi Ananda", 
     },
   });
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
-    const res = await createRegistrasiAset(data);
+    
+    // Cek apakah ini mode Edit atau Tambah Baru
+    const res = initialData 
+      ? await updateRegistrasiAset(initialData.id, data) 
+      : await createRegistrasiAset(data);
+      
     setIsSubmitting(false);
 
     if (res.success) {
-      alert(res.message); // Lo bisa ganti pakai toast(res.message) kalau pakai Sonner
       onSuccess();
     } else {
       alert(res.message);
@@ -46,13 +49,15 @@ export default function FormRegistrasi({ onSuccess, onCancel }: { onSuccess: () 
   return (
     <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm mb-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold text-slate-800">Form Tambah Registrasi Aset</h2>
+        <h2 className="text-lg font-bold text-slate-800">
+          {initialData ? "Form Edit Registrasi Aset" : "Form Tambah Registrasi Aset"}
+        </h2>
         <button onClick={onCancel} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md">
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4"> {/* <--- TAMBAHKAN as any DI SINI */}
+      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-4"> 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           
           {/* Baris 1 */}
@@ -124,7 +129,7 @@ export default function FormRegistrasi({ onSuccess, onCancel }: { onSuccess: () 
           </button>
           <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors disabled:opacity-70">
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Simpan Data
+            {initialData ? "Update Data" : "Simpan Data"}
           </button>
         </div>
       </form>

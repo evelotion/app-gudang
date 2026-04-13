@@ -71,3 +71,40 @@ export async function getHapusBukuAset() {
     return [];
   }
 }
+
+// ==========================================
+// FUNGSI UPDATE & DELETE (BARU)
+// ==========================================
+
+export async function updateRegistrasiAset(id: string, data: z.infer<typeof registrasiAsetSchema>) {
+  try {
+    const parsedData = registrasiAsetSchema.parse(data);
+
+    await prisma.registrasiAset.update({
+      where: { id },
+      data: {
+        ...parsedData,
+        hargaPerolehan: parsedData.hargaPerolehan, 
+      },
+    });
+
+    revalidatePath("/aset/registrasi-baru");
+    return { success: true, message: "Data registrasi aset berhasil diupdate!" };
+  } catch (error) {
+    console.error("Error updateRegistrasiAset:", error);
+    return { success: false, message: "Gagal mengupdate data. Pastikan form valid." };
+  }
+}
+
+export async function deleteRegistrasiAset(id: string) {
+  try {
+    await prisma.registrasiAset.delete({
+      where: { id }
+    });
+    revalidatePath("/aset/registrasi-baru");
+    return { success: true, message: "Data registrasi aset berhasil dihapus!" };
+  } catch (error) {
+    console.error("Error deleteRegistrasiAset:", error);
+    return { success: false, message: "Gagal menghapus data." };
+  }
+}

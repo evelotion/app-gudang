@@ -4,8 +4,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { registrasiAsetSchema, createRegistrasiAset } from "@/actions/aset";
 import { X, Save, Loader2 } from "lucide-react";
+
+// HANYA IMPORT FUNGSI DARI ACTIONS
+import { createRegistrasiAset } from "@/actions/aset";
+
+// HANYA IMPORT SCHEMA DARI VALIDATIONS
+import { registrasiAsetSchema } from "@/lib/validations";
 
 type FormValues = z.infer<typeof registrasiAsetSchema>;
 

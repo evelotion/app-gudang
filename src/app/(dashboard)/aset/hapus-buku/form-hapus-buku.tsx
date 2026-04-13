@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { hapusBukuAsetSchema, createHapusBukuAset } from "@/actions/aset";
+import { createHapusBukuAset } from "@/actions/aset";
+import { hapusBukuAsetSchema } from "@/lib/validations";
 import { X, Save, Loader2 } from "lucide-react";
 
 type FormValues = z.infer<typeof hapusBukuAsetSchema>;

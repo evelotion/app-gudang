@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
-// IMPORT ZOD SCHEMAS DARI FILE VALIDATIONS
+// PASTIKAN BARIS INI BENAR: Mengambil schema HANYA dari file validations
 import { registrasiAsetSchema, hapusBukuAsetSchema } from "@/lib/validations";
 
 // ==========================================
@@ -18,7 +18,6 @@ export async function createRegistrasiAset(data: z.infer<typeof registrasiAsetSc
     await prisma.registrasiAset.create({
       data: {
         ...parsedData,
-        // Konversi otomatis ke format Decimal Prisma yang aman
         hargaPerolehan: parsedData.hargaPerolehan, 
       },
     });

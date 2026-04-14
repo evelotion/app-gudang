@@ -98,3 +98,43 @@ export async function deleteBulkHapusBukuAset(ids: string[]) {
     return { success: false, message: "Gagal menghapus data massal." }; 
   }
 }
+
+// Tambahkan di bagian bawah src/actions/aset.ts
+
+export async function getMutasiAset() {
+  try {
+    const data = await prisma.mutasiAset.findMany({
+      orderBy: { tanggalInput: 'desc' }
+    });
+    return data;
+  } catch (error) {
+    console.error("Gagal mengambil data Mutasi Aset:", error);
+    return [];
+  }
+}
+
+export async function createMutasiAset(data: any) {
+  try {
+    const newMutasi = await prisma.mutasiAset.create({
+      data: {
+        tanggalInput: new Date(data.tanggalInput),
+        tanggalMutasi: new Date(data.tanggalMutasi),
+        nomorRegisterAset: data.nomorRegisterAset,
+        namaAset: data.namaAset,
+        golonganAset: data.golonganAset,
+        jumlah: Number(data.jumlah),
+        tanggalPerolehan: new Date(data.tanggalPerolehan),
+        hargaPerolehan: Number(data.hargaPerolehan),
+        akmPenyusutan: Number(data.akmPenyusutan),
+        lokasiAwal: data.lokasiAwal,
+        lokasiTujuan: data.lokasiTujuan,
+        alasanMutasi: data.alasanMutasi,
+        operatorName: data.operatorName,
+      }
+    });
+    return { success: true, data: newMutasi };
+  } catch (error: any) {
+    console.error("Gagal membuat Mutasi Aset:", error);
+    return { success: false, error: "Terjadi kesalahan saat menyimpan data mutasi." };
+  }
+}

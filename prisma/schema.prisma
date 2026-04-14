@@ -147,3 +147,25 @@ model HapusBukuAset {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
+model MutasiAset {
+  id                  String   @id @default(cuid())
+  tanggalInput        DateTime @default(now())
+  tanggalMutasi       DateTime
+  nomorRegisterAset   String   
+  namaAset            String
+  golonganAset        String
+  jumlah              Int
+  tanggalPerolehan    DateTime
+  hargaPerolehan      Decimal  @db.Decimal(15, 2)
+  akmPenyusutan       Decimal  @db.Decimal(15, 2)
+  lokasiAwal          String
+  lokasiTujuan        String
+  alasanMutasi        String
+  
+  // Track Records
+  status              String   @default("PENDING")
+  operatorName        String
+  supervisorName      String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}

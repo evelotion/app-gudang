@@ -41,6 +41,7 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
   const asetMenu = [
     { name: "Registrasi Baru", icon: FilePlus, path: "/aset/registrasi-baru" },
     { name: "Hapus Buku", icon: FileMinus, path: "/aset/hapus-buku" },
+    { name: "Mutasi Aset", icon: ArrowRightLeft, path: "/aset/mutasi" },
   ];
 
   return (

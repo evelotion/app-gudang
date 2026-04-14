@@ -31,3 +31,20 @@ export const hapusBukuAsetSchema = z.object({
   operatorName: z.string().min(1, "Nama Operator wajib diisi"),
   supervisorName: z.string().optional(),
 });
+
+export const mutasiAsetSchema = z.object({
+  tanggalInput: z.coerce.date(),
+  tanggalMutasi: z.coerce.date(),
+  nomorRegisterAset: z.string().min(1, "Nomor Register wajib diisi"),
+  namaAset: z.string().min(1, "Nama Aset wajib diisi"),
+  golonganAset: z.string().min(1, "Golongan Aset wajib diisi"),
+  jumlah: z.coerce.number().min(1, "Jumlah minimal 1"),
+  tanggalPerolehan: z.coerce.date(),
+  hargaPerolehan: z.coerce.number().min(0, "Harga Perolehan tidak valid"),
+  akmPenyusutan: z.coerce.number().min(0, "Akumulasi Penyusutan tidak valid"),
+  lokasiAwal: z.string().min(1, "Lokasi awal wajib diisi"),
+  lokasiTujuan: z.string().min(1, "Lokasi tujuan wajib diisi"),
+  alasanMutasi: z.string().min(1, "Alasan mutasi wajib diisi"),
+  operatorName: z.string().min(1, "Nama Operator wajib diisi"),
+  supervisorName: z.string().optional(),
+});

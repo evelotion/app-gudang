@@ -35,3 +35,40 @@ export async function tambahBarang(formData: any) {
     return { success: false, error: "Gagal menambah barang baru" }
   }
 }
+
+export async function importBarangExcel(data: any[]) {
+  try {
+    // Kita gunakan transaksi agar kalau gagal satu, gagal semua (aman untuk data)
+    const result = await prisma.$transaction(
+      data.map((item) => 
+        prisma.barang.upsert({
+          where: { kode_barang: String(item.kode_barang).toUpperCase() },
+          update: {
+            nama_barang: item.nama_barang,
+            satuan: item.satuan,
+            stok: Number(item.stok) || 0,
+            stok_min: Number(item.stok_min) || 0,
+            harga_satuan: Number(item.harga_satuan) || 0,
+            nomorator: item.nomorator ? String(item.nomorator) : null,
+            supplier: item.supplier ? String(item.supplier) : null,
+          },
+          create: {
+            kode_barang: String(item.kode_barang).toUpperCase(),
+            nama_barang: item.nama_barang,
+            satuan: item.satuan,
+            stok: Number(item.stok) || 0,
+            stok_min: Number(item.stok_min) || 0,
+            harga_satuan: Number(item.harga_satuan) || 0,
+            nomorator: item.nomorator ? String(item.nomorator) : null,
+            supplier: item.supplier ? String(item.supplier) : null,
+          }
+        })
+      )
+    );
+
+    return { success: true, count: result.length };
+  } catch (error) {
+    console.error("Error import excel:", error);
+    return { success: false, error: "Gagal memproses data import." };
+  }
+}

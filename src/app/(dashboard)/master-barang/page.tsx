@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "lucide-react";
 import DialogTambahBarang from "./DialogTambahBarang";
+import DialogImportExcel from "./DialogImportExcel";
 
 export default function MasterBarang() {
   const [barang, setBarang] = useState<any[]>([]);
@@ -24,16 +25,17 @@ export default function MasterBarang() {
 
   return (
     <main className="flex-1 p-6 lg:p-10 w-full max-w-[1600px] mx-auto space-y-8 pb-12">
-      <PageHeader 
+     <PageHeader 
         title="Master Barang" 
         description="Kelola daftar buku tabungan dan item inventaris lainnya."
         actions={
           <>
-            <Button variant="outline" className="rounded-xl border-slate-200/80 hover:bg-slate-50 text-slate-600 font-semibold shadow-sm">
-              <Download className="w-4 h-4 mr-2" />
-              Export
-            </Button>
-            {/* INI TOMBOL YANG SUDAH BERFUNGSI */}
+            {/* Tombol Import yang baru kita buat */}
+            <DialogImportExcel onRefresh={loadData} />
+            
+            <button className="flex items-center rounded-xl border border-slate-200/80 hover:bg-slate-50 text-slate-600 font-semibold shadow-sm px-4 py-2 text-sm transition-all">
+              <Download className="w-4 h-4 mr-2" /> Export
+            </button>
             <DialogTambahBarang onRefresh={loadData} />
           </>
         }

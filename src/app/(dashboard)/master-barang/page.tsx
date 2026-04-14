@@ -1,17 +1,29 @@
+// src/app/(dashboard)/master-barang/page.tsx
+"use client"
+
+import { useState, useEffect } from "react";
 import { getSemuaBarang } from "@/actions/barang";
 import { DataTable } from "./data-table";
-import { PageHeader } from "@/components/PageHeader"; // Import PageHeader
-import { Card, CardContent } from "@/components/ui/card"; // Import Card premium
+import { PageHeader } from "@/components/PageHeader";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Download } from "lucide-react";
+import { Download, Loader2 } from "lucide-react";
+import DialogTambahBarang from "./DialogTambahBarang";
 
-export default async function MasterBarang() {
-  const { data: barang, success } = await getSemuaBarang();
+export default function MasterBarang() {
+  const [barang, setBarang] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadData = async () => {
+    const res = await getSemuaBarang();
+    if (res.success) setBarang(res.data);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadData(); }, []);
 
   return (
     <main className="flex-1 p-6 lg:p-10 w-full max-w-[1600px] mx-auto space-y-8 pb-12">
-      
-      {/* 1. HEADER KONSISTEN */}
       <PageHeader 
         title="Master Barang" 
         description="Kelola daftar buku tabungan dan item inventaris lainnya."
@@ -21,27 +33,21 @@ export default async function MasterBarang() {
               <Download className="w-4 h-4 mr-2" />
               Export
             </Button>
-            <Button className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-md shadow-indigo-500/20">
-              <Plus className="w-4 h-4 mr-2" />
-              Tambah Barang
-            </Button>
+            {/* INI TOMBOL YANG SUDAH BERFUNGSI */}
+            <DialogTambahBarang onRefresh={loadData} />
           </>
         }
       />
 
-      {/* 2. VALIDASI & TABEL DALAM CARD PREMIUM */}
-      {!success ? (
-        <div className="p-6 bg-rose-50 text-rose-600 rounded-2xl border border-rose-100 font-semibold">
-          Gagal memuat data barang dari server. Silakan muat ulang halaman.
-        </div>
+      {loading ? (
+        <div className="flex h-64 items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-500" /></div>
       ) : (
         <Card>
           <CardContent className="p-6 md:p-8">
-            <DataTable data={barang || []} />
+            <DataTable data={barang} />
           </CardContent>
         </Card>
       )}
-      
     </main>
   );
 }

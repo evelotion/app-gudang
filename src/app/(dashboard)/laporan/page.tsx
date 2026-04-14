@@ -1,9 +1,10 @@
+// src/app/(dashboard)/laporan/page.tsx
 import { prisma } from "@/lib/prisma";
 import { Archive, PackagePlus, ArrowRightLeft } from "lucide-react";
 import ExportButton from "./ExportButton";
 import FilterBulan from "./FilterBulan";
-import { PageHeader } from "@/components/PageHeader"; // Import PageHeader
-import { Card, CardContent } from "@/components/ui/card"; // Import Card premium
+import { PageHeader } from "@/components/PageHeader";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default async function Laporan({ searchParams }: { searchParams: Promise<{ bulan?: string }> }) {
   const params = await searchParams;
@@ -12,39 +13,52 @@ export default async function Laporan({ searchParams }: { searchParams: Promise<
   const defaultBulan = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const selectedBulan = params.bulan || defaultBulan;
 
-  const [year, month] = selectedBulan.split('-');
-  const startDate = new Date(Number(year), Number(month) - 1, 1);
-  const endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
+  // Cek apakah user meminta semua data
+  const isAllTime = selectedBulan === "all";
 
+  let startDate, endDate, namaBulan;
+
+  if (!isAllTime) {
+    const [year, month] = selectedBulan.split('-');
+    startDate = new Date(Number(year), Number(month) - 1, 1);
+    endDate = new Date(Number(year), Number(month), 0, 23, 59, 59, 999);
+    namaBulan = new Date(Number(year), Number(month) - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  } else {
+    namaBulan = "Keseluruhan Waktu";
+  }
+
+  // 1. Fetch data Master Stok
   const persediaan = await prisma.barang.findMany({
     orderBy: { kode_barang: 'asc' }
   });
 
+  // 2. Fetch data Barang Masuk (Kondisional filter tanggal)
   const riwayatMasuk = await prisma.inboundHeader.findMany({
-    where: { tanggal_masuk: { gte: startDate, lte: endDate } },
+    where: isAllTime ? {} : { 
+      tanggal_masuk: { gte: startDate, lte: endDate } 
+    },
     orderBy: { tanggal_masuk: 'desc' },
     include: { items: { include: { barang: true } } }
   });
 
+  // 3. Fetch data Barang Keluar (Kondisional filter tanggal)
   const riwayatKeluar = await prisma.requisitionHeader.findMany({
-    where: { tanggal_request: { gte: startDate, lte: endDate } },
+    where: isAllTime ? {} : { 
+      tanggal_request: { gte: startDate, lte: endDate } 
+    },
     orderBy: { tanggal_request: 'desc' },
     include: { items: { include: { barang: true } } }
   });
 
-  const namaBulan = new Date(Number(year), Number(month) - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
-
   return (
     <main className="flex-1 p-6 lg:p-10 w-full max-w-[1600px] mx-auto space-y-8 pb-12">
       
-      {/* 1. HEADER DENGAN FILTER BULAN DI KANAN */}
       <PageHeader 
         title="Pusat Unduh Laporan" 
         description="Unduh rekapitulasi data gudang dalam format Excel."
         actions={<FilterBulan currentBulan={selectedBulan} />}
       />
 
-      {/* 2. GRID KARTU LAPORAN */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         
         {/* CARD 1: STOK TERKINI */}

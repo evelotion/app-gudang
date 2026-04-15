@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import ExcelJS from "exceljs";
+import { formatTanggalIndo } from "@/lib/utils"; // <-- IMPORT FUNGSI UTILS KITA
 
 export async function GET() {
   try {
@@ -51,7 +52,7 @@ export async function GET() {
         item.namaAset,
         item.golonganAset,
         item.jumlah,
-        item.tanggalPerolehan.toLocaleDateString("id-ID"),
+        formatTanggalIndo(item.tanggalPerolehan), // <-- UBAHAN DI SINI (otomatis "01 Januari 2026")
         Number(item.hargaPerolehan), // Biar bisa diformat angka di Excel
         item.cabangUnitKerja,
         item.userPengguna,

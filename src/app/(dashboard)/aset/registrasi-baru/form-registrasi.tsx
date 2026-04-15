@@ -7,14 +7,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { X, Save, Loader2, Info } from "lucide-react";
 import { createRegistrasiAset, updateRegistrasiAset } from "@/actions/aset"; 
 
-// Bikin schema lokal khusus form (semua string) biar bisa nerima multi-line/paste dari Excel
+// 1. REGEX UNTUK VALIDASI DD/MM/YYYY
+const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/\d{4}$/;
+
+// 2. Bikin schema lokal khusus form (semua string) biar bisa nerima multi-line/paste dari Excel
 const bulkFormSchema = z.object({
   tanggalInput: z.string().min(1, "Wajib diisi"), 
   nomorRegisterAset: z.string().min(1, "Wajib diisi"),
   namaAset: z.string().min(1, "Wajib diisi"),
   golonganAset: z.string().min(1, "Wajib diisi"),
   jumlah: z.string().min(1, "Wajib diisi"),
-  tanggalPerolehan: z.string().min(1, "Wajib diisi"),
+  
+  // 3. KUNCI VALIDASI TANGGAL PEROLEHAN (Cek setiap baris yang di-paste)
+  tanggalPerolehan: z.string().min(1, "Wajib diisi").refine((val) => {
+    const lines = val.split('\n').map(s => s.trim()).filter(Boolean);
+    return lines.every(line => dateRegex.test(line));
+  }, {
+    message: "Format salah! Semua baris wajib DD/MM/YYYY (Cth: 01/01/2026)"
+  }),
+
   hargaPerolehan: z.string().min(1, "Wajib diisi"),
   cabangUnitKerja: z.string().min(1, "Wajib diisi"),
   userPengguna: z.string().min(1, "Wajib diisi"),
@@ -24,6 +35,22 @@ const bulkFormSchema = z.object({
 });
 
 type FormValues = z.infer<typeof bulkFormSchema>;
+
+// HELPER 1: Convert Date dari DB jadi String DD/MM/YYYY (Buat nampilin data saat Edit)
+const formatToDDMMYYYY = (dateVal: any) => {
+  if (!dateVal) return "";
+  const d = new Date(dateVal);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${d.getFullYear()}`;
+};
+
+// HELPER 2: Convert String DD/MM/YYYY balik ke Date (Buat disave ke DB via Prisma)
+const parseDDMMYYYY = (dateStr: string) => {
+  if (!dateStr || !dateStr.includes('/')) return new Date();
+  const [day, month, year] = dateStr.split('/');
+  return new Date(`${year}-${month}-${day}T00:00:00Z`); // Pakai T00:00:00Z biar akurat
+};
 
 export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { initialData?: any, onSuccess: () => void, onCancel: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,7 +62,8 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
       jumlah: String(initialData.jumlah),
       hargaPerolehan: String(initialData.hargaPerolehan),
       tanggalInput: new Date(initialData.tanggalInput).toISOString().split('T')[0], 
-      tanggalPerolehan: new Date(initialData.tanggalPerolehan).toISOString().split('T')[0]
+      // Gunakan Helper 1 saat Edit Data
+      tanggalPerolehan: formatToDDMMYYYY(initialData.tanggalPerolehan) 
     } : {
       tanggalInput: new Date().toISOString().split('T')[0], 
       jumlah: "1",
@@ -69,7 +97,8 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
           namaAset: nama[i] || nama[0] || "-",
           golonganAset: gol[i] || gol[0] || "-",
           jumlah: Number(jml[i] || jml[0] || 1),
-          tanggalPerolehan: new Date(tgl[i] || tgl[0] || new Date()),
+          // Gunakan Helper 2 untuk mengubah string jadi Date sebelum ke Server Action
+          tanggalPerolehan: parseDDMMYYYY(tgl[i] || tgl[0]), 
           hargaPerolehan: Number(hrg[i] || hrg[0] || 0),
           cabangUnitKerja: cabang[i] || cabang[0] || "-",
           userPengguna: user[i] || user[0] || "-",
@@ -144,9 +173,24 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
                 <textarea {...register("jumlah")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-y" placeholder="1" />
               </div>
 
+              {/* UBAHAN DI SINI: Styling Error & Helper untuk Tanggal Perolehan */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Tanggal Perolehan</label>
-                <textarea {...register("tanggalPerolehan")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-y" placeholder="2026-04-13" />
+                <label className="text-xs font-semibold text-slate-700">
+                  Tanggal Perolehan <span className="text-rose-500">*</span>
+                </label>
+                <textarea 
+                  {...register("tanggalPerolehan")} 
+                  rows={2} 
+                  className={`w-full text-sm p-2.5 border rounded-lg outline-none focus:ring-2 resize-y ${
+                    errors.tanggalPerolehan 
+                      ? "border-rose-500 focus:ring-rose-500/20" 
+                      : "border-slate-300 focus:ring-indigo-500/20 focus:border-indigo-500"
+                  }`} 
+                  placeholder="Cth: 01/01/2026&#10;15/04/2026" 
+                />
+                {errors.tanggalPerolehan && (
+                  <p className="text-xs text-rose-500 font-medium">{errors.tanggalPerolehan.message}</p>
+                )}
               </div>
 
               <div className="space-y-1">
@@ -174,7 +218,6 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
                 <input {...register("inputerName")} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none bg-slate-50" readOnly />
               </div>
 
-              {/* UBAHAN DI SINI: Input diganti jadi Select Dropdown */}
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-semibold text-slate-700">Nama Supervisi (Opsional)</label>
                 <select 
@@ -183,8 +226,6 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
                 >
                   <option value="">- Pilih Supervisi -</option>
                   <option value="Novianti Siswandi">Novianti Siswandi</option>
-                  {/* Tambahkan nama supervisi lain di bawah sini jika perlu */}
-                  {/* <option value="Nama Lain">Nama Lain</option> */}
                 </select>
               </div>
             </div>

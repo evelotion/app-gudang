@@ -3,14 +3,11 @@
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pencil, Trash2, Loader2, FolderOpen } from "lucide-react";
-import { deleteRegistrasiAset, deleteBulkRegistrasiAset } from "@/actions/aset"; // Pastikan import deleteBulk
+import { deleteRegistrasiAset, deleteBulkRegistrasiAset } from "@/actions/aset";
+import { formatTanggalIndo } from "@/lib/utils"; // <-- IMPORT FUNGSI UTILS KITA
 
 const formatRupiah = (angka: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
-};
-
-const formatTanggal = (tanggal: string) => {
-  return new Intl.DateTimeFormat("id-ID", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(tanggal));
 };
 
 export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data: any[], onEdit: (item: any) => void, onRefresh: () => void }) {
@@ -145,7 +142,7 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
                   </TableCell>
 
                   <TableCell className="text-center font-medium text-slate-700">{row.jumlah}</TableCell>
-                  <TableCell className="text-slate-600">{formatTanggal(row.tanggalPerolehan)}</TableCell>
+                  <TableCell className="text-slate-600">{formatTanggalIndo(row.tanggalPerolehan)}</TableCell> {/* <-- UBAHAN DI SINI */}
                   <TableCell className="text-right font-semibold text-emerald-600">{formatRupiah(row.hargaPerolehan)}</TableCell>
                   <TableCell className="text-slate-600">{row.cabangUnitKerja}</TableCell>
                   <TableCell className="text-slate-600">{row.userPengguna}</TableCell>

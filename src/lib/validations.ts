@@ -1,7 +1,16 @@
 import { z } from "zod";
 
+// ==========================================
+// REGEX UTILITY (Bisa di-import ke komponen form UI)
+// ==========================================
+export const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/\d{4}$/;
+
+// ==========================================
+// SERVER SCHEMAS (Untuk divalidasi di Server Action)
+// ==========================================
+
 export const registrasiAsetSchema = z.object({
-  tanggalInput: z.coerce.date(), // <--- TAMBAHAN UNTUK BATCH DATE
+  tanggalInput: z.coerce.date(), // Batch Date
   nomorRegisterAset: z.string().min(1, "Nomor Register wajib diisi"),
   namaAset: z.string().min(1, "Nama Aset wajib diisi"),
   golonganAset: z.string().min(1, "Golongan Aset wajib diisi"),
@@ -16,7 +25,7 @@ export const registrasiAsetSchema = z.object({
 });
 
 export const hapusBukuAsetSchema = z.object({
-  tanggalInput: z.coerce.date(), // <--- TAMBAHAN UNTUK BATCH DATE
+  tanggalInput: z.coerce.date(), // Batch Date
   tanggalHapusBuku: z.coerce.date(),
   nomorRegisterAset: z.string().min(1, "Nomor Register wajib diisi"),
   namaAset: z.string().min(1, "Nama Aset wajib diisi"),
@@ -33,7 +42,7 @@ export const hapusBukuAsetSchema = z.object({
 });
 
 export const mutasiAsetSchema = z.object({
-  tanggalInput: z.coerce.date(),
+  tanggalInput: z.coerce.date(), // Batch Date
   tanggalMutasi: z.coerce.date(),
   nomorRegisterAset: z.string().min(1, "Nomor Register wajib diisi"),
   namaAset: z.string().min(1, "Nama Aset wajib diisi"),

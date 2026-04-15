@@ -114,7 +114,6 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
 
   // LOGIC SIMPAN INLINE EDITING KE DATABASE
   const handleInlineSave = async (row: any, field: string, newValue: string) => {
-    // Validasi Tanggal
     if (field === 'tanggalPerolehan') {
       const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/\d{4}$/;
       if (!dateRegex.test(newValue)) {
@@ -126,7 +125,6 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
     setSavingCell({ id: row.id, field });
     
     try {
-      // 1. Re-build Payload lengkap dari data row saat ini
       const payload = {
         tanggalInput: new Date(row.tanggalInput),
         nomorRegisterAset: row.nomorRegisterAset,
@@ -142,9 +140,8 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
         supervisorName: row.supervisorName || "",
       };
 
-      // 2. Timpa dengan field yang barusan diedit
       if (field === 'jumlah' || field === 'hargaPerolehan') {
-        (payload as any)[field] = Number(String(newValue).replace(/\D/g, '')); // Buang huruf kalau ada
+        (payload as any)[field] = Number(String(newValue).replace(/\D/g, ''));
       } else if (field === 'tanggalPerolehan') {
         const [d, m, y] = newValue.split('/');
         (payload as any)[field] = new Date(`${y}-${m}-${d}T00:00:00Z`);
@@ -152,7 +149,6 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
         (payload as any)[field] = newValue;
       }
 
-      // 3. Kirim ke Server Action
       const res = await updateRegistrasiAset(row.id, payload as any);
       if (res.success) {
         setEditingCell(null);
@@ -179,7 +175,6 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden relative">
       
-      {/* BAR AKSI MASSAL */}
       {selectedIds.length > 0 && (
         <div className="bg-indigo-50/90 backdrop-blur-sm border-b border-indigo-100 px-4 py-3 flex items-center justify-between animate-in slide-in-from-top-2">
           <span className="text-sm text-indigo-700 font-bold">{selectedIds.length} data dipilih</span>
@@ -221,8 +216,6 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
           <TableBody>
             {data.map((row, index) => {
               const isSelected = selectedIds.includes(row.id);
-              
-              // Helper untuk mengecek apakah cell ini sedang disave
               const isSaving = (field: string) => savingCell?.id === row.id && savingCell?.field === field;
 
               return (
@@ -253,6 +246,7 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
                     <EditableCell row={row} field="jumlah" value={row.jumlah} displayValue={<span className="font-medium text-slate-700 text-center block">{row.jumlah}</span>} onSave={handleInlineSave} isSaving={isSaving("jumlah")} editingCell={editingCell} setEditingCell={setEditingCell} />
                   </TableCell>
 
+                  {/* TANGGAL PEROLEHAN: Saat edit DD/MM/YYYY, Saat tampil 01 Januari 2026 */}
                   <TableCell>
                     <EditableCell row={row} field="tanggalPerolehan" value={formatToDDMMYYYY(row.tanggalPerolehan)} displayValue={<span className="text-slate-600">{formatTanggalIndo(row.tanggalPerolehan)}</span>} onSave={handleInlineSave} isSaving={isSaving("tanggalPerolehan")} editingCell={editingCell} setEditingCell={setEditingCell} />
                   </TableCell>
@@ -269,7 +263,6 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
                     <EditableCell row={row} field="userPengguna" value={row.userPengguna} displayValue={<span className="text-slate-600">{row.userPengguna}</span>} onSave={handleInlineSave} isSaving={isSaving("userPengguna")} editingCell={editingCell} setEditingCell={setEditingCell} />
                   </TableCell>
                   
-                  {/* AKSI DEFAULT (PENCIL & TRASH) TETAP ADA */}
                   <TableCell>
                     <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
                       <button 

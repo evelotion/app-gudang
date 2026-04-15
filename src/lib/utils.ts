@@ -25,7 +25,7 @@ export function formatTanggalIndo(dateInput: Date | string | null | undefined) {
   // Cek apakah tanggalnya valid
   if (isNaN(dateObj.getTime())) return "Tanggal Invalid";
 
-  // Format ke Bahasa Indonesia
+  // Format ke Bahasa Indonesia (pakai month: "long" biar jadi "Januari")
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
     month: "long",

@@ -1,31 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // <-- TAMBAHAN: Import useEffect
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X, Save, Loader2, Info } from "lucide-react";
+import { X, Save, Loader2, Info, Sparkles } from "lucide-react"; // <-- TAMBAHAN: Icon Sparkles buat efek magic
 import { createRegistrasiAset, updateRegistrasiAset } from "@/actions/aset"; 
 
-// 1. REGEX UNTUK VALIDASI DD/MM/YYYY
+// ==========================================
+// KAMUS GOLONGAN ASET BERDASARKAN KODE
+// ==========================================
+const GOLONGAN_MAP: Record<string, string> = {
+  "101": "Tanah",
+  "102": "Gedung",
+  "103": "Gudang",
+  "104": "Wisma",
+  "105": "Gedung Baru",
+  "106": "Gedung Baru",
+  "107": "Gedung",
+  "150": "Properti Terbengkalai",
+  "180": "Instalasi",
+  "181": "INSTALASI FIRE ALARM",
+  "201": "Alat Transportasi",
+  "211": "ALAT TRANSPORTASI GOL. II",
+  "301": "PERABOT KANTOR GOL. I",
+  "311": "PERABOT KANTOR GOL. II",
+  "340": "Buku Perpustakaan",
+  "390": "Perlengkapan Lainnya",
+  "400": "Mesin Kantor",
+  "401": "MESIN KANTOR GOL. I",
+  "402": "MESIN KANTOR GOL. II",
+  "440": "Alat Telekomunikasi",
+  "460": "ALAT PERLENGKAPAN LAINNYA",
+  "500": "KOMPUTER",
+  "510": "Komputer Software",
+  "511": "Lisensi",
+  "512": "Software",
+  "513": "LISENSI",
+  "514": "SOFTWARE",
+  "515": "LISENSI",
+  "900": "ASET NON-INVENTARIS",
+};
+
 const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/\d{4}$/;
 
-// 2. Bikin schema lokal khusus form (semua string) biar bisa nerima multi-line/paste dari Excel
 const bulkFormSchema = z.object({
   tanggalInput: z.string().min(1, "Wajib diisi"), 
   nomorRegisterAset: z.string().min(1, "Wajib diisi"),
   namaAset: z.string().min(1, "Wajib diisi"),
   golonganAset: z.string().min(1, "Wajib diisi"),
   jumlah: z.string().min(1, "Wajib diisi"),
-  
-  // 3. KUNCI VALIDASI TANGGAL PEROLEHAN (Cek setiap baris yang di-paste)
   tanggalPerolehan: z.string().min(1, "Wajib diisi").refine((val) => {
     const lines = val.split('\n').map(s => s.trim()).filter(Boolean);
     return lines.every(line => dateRegex.test(line));
   }, {
     message: "Format salah! Semua baris wajib DD/MM/YYYY (Cth: 01/01/2026)"
   }),
-
   hargaPerolehan: z.string().min(1, "Wajib diisi"),
   cabangUnitKerja: z.string().min(1, "Wajib diisi"),
   userPengguna: z.string().min(1, "Wajib diisi"),
@@ -36,7 +66,6 @@ const bulkFormSchema = z.object({
 
 type FormValues = z.infer<typeof bulkFormSchema>;
 
-// HELPER 1: Convert Date dari DB jadi String DD/MM/YYYY (Buat nampilin data saat Edit)
 const formatToDDMMYYYY = (dateVal: any) => {
   if (!dateVal) return "";
   const d = new Date(dateVal);
@@ -45,24 +74,22 @@ const formatToDDMMYYYY = (dateVal: any) => {
   return `${day}/${month}/${d.getFullYear()}`;
 };
 
-// HELPER 2: Convert String DD/MM/YYYY balik ke Date (Buat disave ke DB via Prisma)
 const parseDDMMYYYY = (dateStr: string) => {
   if (!dateStr || !dateStr.includes('/')) return new Date();
   const [day, month, year] = dateStr.split('/');
-  return new Date(`${year}-${month}-${day}T00:00:00Z`); // Pakai T00:00:00Z biar akurat
+  return new Date(`${year}-${month}-${day}T00:00:00Z`); 
 };
 
 export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { initialData?: any, onSuccess: () => void, onCancel: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors }, watch, setValue, getValues } = useForm<FormValues>({
     resolver: zodResolver(bulkFormSchema),
     defaultValues: initialData ? {
       ...initialData,
       jumlah: String(initialData.jumlah),
       hargaPerolehan: String(initialData.hargaPerolehan),
       tanggalInput: new Date(initialData.tanggalInput).toISOString().split('T')[0], 
-      // Gunakan Helper 1 saat Edit Data
       tanggalPerolehan: formatToDDMMYYYY(initialData.tanggalPerolehan) 
     } : {
       tanggalInput: new Date().toISOString().split('T')[0], 
@@ -71,6 +98,35 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
       inputerName: "Indra Dwi Ananda", 
     },
   });
+
+  // ==========================================
+  // LOGIC AUTO-DETECT GOLONGAN ASET
+  // ==========================================
+  const watchNomorRegister = watch("nomorRegisterAset");
+
+  useEffect(() => {
+    // Hanya jalan kalau lagi form "Tambah Baru" atau user ngetik di kolom Register
+    if (watchNomorRegister !== undefined) {
+      const lines = watchNomorRegister.split('\n');
+      
+      const autoGolongan = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return "";
+        
+        // Pecah "900/493/00056/2026" berdasarkan "/" dan ambil bagian pertama ("900")
+        const kode = trimmed.split('/')[0]; 
+        
+        // Cari di kamus, kalau ga ada balikin string kosong
+        return GOLONGAN_MAP[kode] || ""; 
+      }).join('\n');
+
+      // Cek biar ga infinite render, hanya update kalau isinya beda
+      if (getValues("golonganAset") !== autoGolongan) {
+        setValue("golonganAset", autoGolongan, { shouldValidate: true });
+      }
+    }
+  }, [watchNomorRegister, setValue, getValues]);
+
 
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
@@ -97,7 +153,6 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
           namaAset: nama[i] || nama[0] || "-",
           golonganAset: gol[i] || gol[0] || "-",
           jumlah: Number(jml[i] || jml[0] || 1),
-          // Gunakan Helper 2 untuk mengubah string jadi Date sebelum ke Server Action
           tanggalPerolehan: parseDDMMYYYY(tgl[i] || tgl[0]), 
           hargaPerolehan: Number(hrg[i] || hrg[0] || 0),
           cabangUnitKerja: cabang[i] || cabang[0] || "-",
@@ -155,7 +210,7 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
               
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">Nomor Register Aset</label>
-                <textarea {...register("nomorRegisterAset")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-y" placeholder="Cth: 500/503/001&#10;500/503/002" />
+                <textarea {...register("nomorRegisterAset")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-y" placeholder="Cth: 900/493/00056/2026&#10;500/123/00012/2026" />
               </div>
               
               <div className="space-y-1">
@@ -163,9 +218,21 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
                 <textarea {...register("namaAset")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-y" placeholder="Cth: Printer&#10;Scanner" />
               </div>
 
+              {/* UBAHAN DI SINI: Tampilan Auto-Detect */}
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Golongan Aset</label>
-                <textarea {...register("golonganAset")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-y" placeholder="Cth: KOMPUTER" />
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  Golongan Aset
+                  <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                    <Sparkles className="w-3 h-3" /> Auto
+                  </span>
+                </label>
+                <textarea 
+                  {...register("golonganAset")} 
+                  rows={2} 
+                  // Background sedikit diabu-abukan biar user tau ini otomatis diisi
+                  className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 resize-y bg-amber-50/30" 
+                  placeholder="Otomatis terisi dari Nomor Register" 
+                />
               </div>
 
               <div className="space-y-1">
@@ -173,7 +240,6 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
                 <textarea {...register("jumlah")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-y" placeholder="1" />
               </div>
 
-              {/* UBAHAN DI SINI: Styling Error & Helper untuk Tanggal Perolehan */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
                   Tanggal Perolehan <span className="text-rose-500">*</span>
@@ -182,9 +248,7 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
                   {...register("tanggalPerolehan")} 
                   rows={2} 
                   className={`w-full text-sm p-2.5 border rounded-lg outline-none focus:ring-2 resize-y ${
-                    errors.tanggalPerolehan 
-                      ? "border-rose-500 focus:ring-rose-500/20" 
-                      : "border-slate-300 focus:ring-indigo-500/20 focus:border-indigo-500"
+                    errors.tanggalPerolehan ? "border-rose-500 focus:ring-rose-500/20" : "border-slate-300 focus:ring-indigo-500/20 focus:border-indigo-500"
                   }`} 
                   placeholder="Cth: 01/01/2026&#10;15/04/2026" 
                 />

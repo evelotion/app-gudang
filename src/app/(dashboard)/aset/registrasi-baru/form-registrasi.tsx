@@ -60,7 +60,7 @@ const parseDDMMYYYY = (dateStr: string) => {
 
 export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { initialData?: any, onSuccess: () => void, onCancel: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPreview, setShowPreview] = useState(false); // State untuk toggle Preview
+  const [showPreview, setShowPreview] = useState(false); 
   const [previewRows, setPreviewRows] = useState<any[]>([]);
 
   const { register, handleSubmit, formState: { errors }, watch, setValue, getValues, trigger } = useForm<FormValues>({
@@ -140,7 +140,6 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
     try {
-      // Logic pemecahan baris sama seperti handleGeneratePreview
       const splitLines = (str: string) => str.split('\n').map(s => s.trim()).filter(Boolean);
       const noReg = splitLines(data.nomorRegisterAset);
       const nama = splitLines(data.namaAset);
@@ -192,7 +191,7 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
         <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
           <div className="flex items-center gap-3">
             {showPreview && (
-              <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-600">
+              <button type="button" onClick={() => setShowPreview(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-600">
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
@@ -205,64 +204,66 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
               </p>
             </div>
           </div>
-          <button onClick={onCancel} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors">
+          <button type="button" onClick={onCancel} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 overflow-y-auto custom-scrollbar flex-grow">
           
-          {/* TAMPILAN 1: FORM INPUT (HIDDEN SAAT PREVIEW) */}
-          {!showPreview ? (
-            <form id="asetForm" onSubmit={handleSubmit(onSubmit)} className="space-y-5"> 
-              <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
-                <label className="text-sm font-bold text-indigo-900 block mb-2">Batch Date (Tanggal Input Sistem)</label>
-                <input type="date" {...register("tanggalInput")} className="w-full md:w-1/3 text-sm p-2.5 border border-indigo-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" />
+          {/* TAMPILAN 1: FORM INPUT (Disembunyikan pakai CSS saat preview, jangan dihapus dari DOM!) */}
+          <form 
+            id="asetForm" 
+            onSubmit={handleSubmit(onSubmit)} 
+            className={showPreview ? "hidden" : "space-y-5"} 
+          > 
+            <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100">
+              <label className="text-sm font-bold text-indigo-900 block mb-2">Batch Date (Tanggal Input Sistem)</label>
+              <input type="date" {...register("tanggalInput")} className="w-full md:w-1/3 text-sm p-2.5 border border-indigo-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Nomor Register Aset</label>
+                <textarea {...register("nomorRegisterAset")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" placeholder="900/493/00056/2026" />
+              </div>
+              
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Nama Aset</label>
+                <textarea {...register("namaAset")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {/* Field-field Textarea (Sama seperti sebelumnya) */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Nomor Register Aset</label>
-                  <textarea {...register("nomorRegisterAset")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" placeholder="900/493/00056/2026" />
-                </div>
-                
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Nama Aset</label>
-                  <textarea {...register("namaAset")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                    Golongan Aset <Sparkles className="w-3 h-3 text-amber-500" />
-                  </label>
-                  <textarea {...register("golonganAset")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none bg-amber-50/30" readOnly />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Jumlah (Qty)</label>
-                  <textarea {...register("jumlah")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none" />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Tanggal Perolehan (DD/MM/YYYY)</label>
-                  <textarea {...register("tanggalPerolehan")} rows={3} className={`w-full text-sm p-2.5 border rounded-lg ${errors.tanggalPerolehan ? "border-rose-500" : "border-slate-300"}`} />
-                  {errors.tanggalPerolehan && <p className="text-[10px] text-rose-500">{errors.tanggalPerolehan.message}</p>}
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Harga Perolehan</label>
-                  <textarea {...register("hargaPerolehan")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg" />
-                </div>
-
-                <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Cabang</label><textarea {...register("cabangUnitKerja")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg" /></div>
-                <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">User</label><textarea {...register("userPengguna")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg" /></div>
-                <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Lokasi</label><textarea {...register("lokasiPosisiAset")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg" /></div>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  Golongan Aset <Sparkles className="w-3 h-3 text-amber-500" />
+                </label>
+                <textarea {...register("golonganAset")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none bg-amber-50/30" readOnly />
               </div>
-            </form>
-          ) : (
-            
-            /* TAMPILAN 2: TABLE PREVIEW (MUNCUL SAAT KLIK PREVIEW) */
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Jumlah (Qty)</label>
+                <textarea {...register("jumlah")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg outline-none" />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Tanggal Perolehan (DD/MM/YYYY)</label>
+                <textarea {...register("tanggalPerolehan")} rows={3} className={`w-full text-sm p-2.5 border rounded-lg ${errors.tanggalPerolehan ? "border-rose-500" : "border-slate-300"}`} />
+                {errors.tanggalPerolehan && <p className="text-[10px] text-rose-500">{errors.tanggalPerolehan.message}</p>}
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Harga Perolehan</label>
+                <textarea {...register("hargaPerolehan")} rows={3} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg" />
+              </div>
+
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Cabang</label><textarea {...register("cabangUnitKerja")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">User</label><textarea {...register("userPengguna")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg" /></div>
+              <div className="space-y-1"><label className="text-xs font-semibold text-slate-700">Lokasi</label><textarea {...register("lokasiPosisiAset")} rows={2} className="w-full text-sm p-2.5 border border-slate-300 rounded-lg" /></div>
+            </div>
+          </form>
+          
+          {/* TAMPILAN 2: TABLE PREVIEW (MUNCUL SAAT KLIK PREVIEW) */}
+          {showPreview && (
             <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-100 text-[11px] uppercase font-bold text-slate-600">
@@ -271,7 +272,7 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
                     <th className="p-3 border-b">Register</th>
                     <th className="p-3 border-b">Nama Aset</th>
                     <th className="p-3 border-b">Golongan</th>
-                    <th className="p-3 border-b">Qty</th>
+                    <th className="p-3 border-b text-center">Qty</th>
                     <th className="p-3 border-b">Tgl Perolehan</th>
                     <th className="p-3 border-b text-right">Harga</th>
                   </tr>
@@ -292,6 +293,7 @@ export default function FormRegistrasi({ initialData, onSuccess, onCancel }: { i
               </table>
             </div>
           )}
+
         </div>
 
         {/* FOOTER ACTIONS */}

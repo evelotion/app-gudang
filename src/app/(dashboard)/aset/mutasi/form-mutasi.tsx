@@ -54,7 +54,7 @@ export default function FormMutasi({ initialData, onCancel, onSuccess }: any) {
       reset();
       onSuccess();
     } else {
-      toast.error(res.error || "Gagal menyimpan data", { id: toastId });
+      toast.error(res.message || "Gagal menyimpan data", { id: toastId });
     }
     setIsSubmitting(false);
   };

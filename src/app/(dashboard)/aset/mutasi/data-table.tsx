@@ -159,6 +159,10 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
               <TableHead className="font-bold text-slate-600">No. Register</TableHead>
               <TableHead className="font-bold text-slate-600">Nama Aset</TableHead>
               <TableHead className="text-center font-bold text-slate-600">Jml</TableHead>
+              
+              {/* KOLOM BARU: Tgl Perolehan */}
+              <TableHead className="font-bold text-slate-600">Tgl Perolehan</TableHead>
+
               {/* Kolom Harga/Susut dikembalikan dan di-set text-right */}
               <TableHead className="text-right font-bold text-slate-600">Harga Perolehan</TableHead>
               <TableHead className="text-right font-bold text-slate-600">Akm. Susut</TableHead>
@@ -180,6 +184,9 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
                 <TableCell><EditableCell row={row} field="namaAset" value={row.namaAset} displayValue={<span className="font-semibold text-slate-800">{row.namaAset}</span>} onSave={handleInlineSave} isSaving={savingCell?.id === row.id && savingCell?.field === "namaAset"} editingCell={editingCell} setEditingCell={setEditingCell} /></TableCell>
                 <TableCell><EditableCell row={row} field="jumlah" value={row.jumlah} displayValue={<span className="block text-center w-full font-medium">{row.jumlah}</span>} onSave={handleInlineSave} isSaving={savingCell?.id === row.id && savingCell?.field === "jumlah"} editingCell={editingCell} setEditingCell={setEditingCell} /></TableCell>
                 
+                {/* KOLOM BARU: Tgl Perolehan */}
+                <TableCell><EditableCell row={row} field="tanggalPerolehan" value={formatToDDMMYYYY(row.tanggalPerolehan)} displayValue={<span className="text-slate-600">{formatTanggalDisplay(row.tanggalPerolehan)}</span>} onSave={handleInlineSave} isSaving={savingCell?.id === row.id && savingCell?.field === "tanggalPerolehan"} editingCell={editingCell} setEditingCell={setEditingCell} /></TableCell>
+
                 {/* Harga dan Akm Susut dirender ke kanan dengan block text-right */}
                 <TableCell><EditableCell row={row} field="hargaPerolehan" value={row.hargaPerolehan} displayValue={<span className="block text-right w-full text-slate-600">{formatRupiah(row.hargaPerolehan)}</span>} onSave={handleInlineSave} isSaving={savingCell?.id === row.id && savingCell?.field === "hargaPerolehan"} editingCell={editingCell} setEditingCell={setEditingCell} /></TableCell>
                 <TableCell><EditableCell row={row} field="akmPenyusutan" value={row.akmPenyusutan} displayValue={<span className="block text-right w-full text-rose-600 font-medium">{formatRupiah(row.akmPenyusutan)}</span>} onSave={handleInlineSave} isSaving={savingCell?.id === row.id && savingCell?.field === "akmPenyusutan"} editingCell={editingCell} setEditingCell={setEditingCell} /></TableCell>

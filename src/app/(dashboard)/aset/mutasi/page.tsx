@@ -35,6 +35,7 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
         item.nomorRegisterAset, 
         item.namaAset, 
         item.jumlah,
+        new Date(item.tanggalPerolehan).toLocaleDateString("id-ID"), // <-- DATA KOLOM BARU (Tgl Perolehan)
         formatRupiah(item.hargaPerolehan), 
         formatRupiah(item.akmPenyusutan), 
         item.lokasiAwal,
@@ -45,10 +46,12 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
 
     autoTable(doc, {
       startY: 30,
-      head: [["No", "Tgl Mutasi", "No. Register", "Nama Aset", "Jml", "Harga Perolehan", "Akm. Susut", "Lokasi Awal", "Lokasi Tujuan", "Alasan"]],
+      // HEADER DITAMBAHKAN "Tgl Perolehan"
+      head: [["No", "Tgl Mutasi", "No. Register", "Nama Aset", "Jml", "Tgl Perolehan", "Harga Perolehan", "Akm. Susut", "Lokasi Awal", "Lokasi Tujuan", "Alasan"]],
       body: tableData,
       foot: [
-        [{ content: "Total", colSpan: 5, styles: { halign: "center", fontStyle: "bold" } }, 
+        // colSpan DIGANTI DARI 5 MENJADI 6
+        [{ content: "Total", colSpan: 6, styles: { halign: "center", fontStyle: "bold" } }, 
          { content: formatRupiah(tHarga), styles: { halign: "right", fontStyle: "bold" } }, 
          { content: formatRupiah(tSusut), styles: { halign: "right", fontStyle: "bold", textColor: [220, 38, 38] } }, 
          "", "", ""]
@@ -57,7 +60,8 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
       headStyles: { fillColor: "#4F46E5", textColor: "#FFFFFF", halign: 'center' }, // Tema Indigo untuk header PDF
       footStyles: { fillColor: "#E0E7FF", textColor: "#4F46E5" }, 
       styles: { fontSize: 8, cellPadding: 2 },
-      columnStyles: { 0: { halign: 'center' }, 4: { halign: 'center' }, 5: { halign: 'right' }, 6: { halign: 'right' }}
+      // INDEX STYLES DISESUAIKAN (Geser 1 kolom ke kanan setelah jumlah)
+      columnStyles: { 0: { halign: 'center' }, 4: { halign: 'center' }, 5: { halign: 'center' }, 6: { halign: 'right' }, 7: { halign: 'right' } }
     });
 
     const finalY = (doc as any).lastAutoTable.finalY + 20; 

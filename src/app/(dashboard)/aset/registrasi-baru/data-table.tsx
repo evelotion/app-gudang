@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, Loader2, FolderOpen, Edit2, Check, X as XIcon } from "lucide-react";
+import { Pencil, Trash2, Loader2, FolderOpen, Edit2, Check, X as XIcon, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { deleteRegistrasiAset, deleteBulkRegistrasiAset, updateRegistrasiAset } from "@/actions/aset";
 import { formatTanggalIndo } from "@/lib/utils"; 
 
@@ -69,7 +69,6 @@ const EditableCell = ({ row, field, value, displayValue, onSave, isSaving, editi
   );
 };
 
-
 export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data: any[], onEdit: (item: any) => void, onRefresh: () => void }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -79,8 +78,41 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
   const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
   const [savingCell, setSavingCell] = useState<{id: string, field: string} | null>(null);
 
+  // STATE UNTUK SORTING
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+
+  // LOGIC SORTING
+  const handleSort = (key: string) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedData = [...data].sort((a, b) => {
+    if (!sortConfig) return 0;
+    
+    const { key, direction } = sortConfig;
+    let aValue = a[key];
+    let bValue = b[key];
+
+    if (typeof aValue === "string") aValue = aValue.toLowerCase();
+    if (typeof bValue === "string") bValue = bValue.toLowerCase();
+
+    if (aValue < bValue) return direction === "asc" ? -1 : 1;
+    if (aValue > bValue) return direction === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig?.key !== columnKey) return <ArrowUpDown className="w-3 h-3 text-slate-300 ml-1 opacity-50 group-hover:opacity-100 transition-opacity" />;
+    if (sortConfig.direction === "asc") return <ArrowUp className="w-3 h-3 text-indigo-600 ml-1" />;
+    return <ArrowDown className="w-3 h-3 text-indigo-600 ml-1" />;
+  };
+
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) setSelectedIds(data.map(item => item.id));
+    if (e.target.checked) setSelectedIds(sortedData.map(item => item.id));
     else setSelectedIds([]);
   };
 
@@ -112,7 +144,6 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
     } else alert(res.message);
   };
 
-  // LOGIC SIMPAN INLINE EDITING KE DATABASE
   const handleInlineSave = async (row: any, field: string, newValue: string) => {
     if (field === 'tanggalPerolehan') {
       const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/\d{4}$/;
@@ -202,19 +233,35 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
                 />
               </TableHead>
               <TableHead className="w-[50px] text-center font-bold text-slate-600">No</TableHead>
-              <TableHead className="font-bold text-slate-600">Nomor Register</TableHead>
-              <TableHead className="font-bold text-slate-600">Nama Aset</TableHead>
-              <TableHead className="font-bold text-slate-600">Golongan</TableHead>
-              <TableHead className="text-center font-bold text-slate-600">Jumlah</TableHead>
-              <TableHead className="font-bold text-slate-600">Tgl Perolehan</TableHead>
-              <TableHead className="font-bold text-slate-600">Harga Perolehan</TableHead>
-              <TableHead className="font-bold text-slate-600">Cabang / Unit</TableHead>
-              <TableHead className="font-bold text-slate-600">User Pengguna</TableHead>
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('nomorRegisterAset')}>
+                <div className="flex items-center">Nomor Register <SortIcon columnKey="nomorRegisterAset" /></div>
+              </TableHead>
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('namaAset')}>
+                <div className="flex items-center">Nama Aset <SortIcon columnKey="namaAset" /></div>
+              </TableHead>
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('golonganAset')}>
+                <div className="flex items-center">Golongan <SortIcon columnKey="golonganAset" /></div>
+              </TableHead>
+              <TableHead className="text-center font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('jumlah')}>
+                <div className="flex items-center justify-center">Jumlah <SortIcon columnKey="jumlah" /></div>
+              </TableHead>
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('tanggalPerolehan')}>
+                <div className="flex items-center">Tgl Perolehan <SortIcon columnKey="tanggalPerolehan" /></div>
+              </TableHead>
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('hargaPerolehan')}>
+                <div className="flex items-center">Harga Perolehan <SortIcon columnKey="hargaPerolehan" /></div>
+              </TableHead>
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('cabangUnitKerja')}>
+                <div className="flex items-center">Cabang / Unit <SortIcon columnKey="cabangUnitKerja" /></div>
+              </TableHead>
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('userPengguna')}>
+                <div className="flex items-center">User Pengguna <SortIcon columnKey="userPengguna" /></div>
+              </TableHead>
               <TableHead className="text-center font-bold text-slate-600">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((row, index) => {
+            {sortedData.map((row, index) => {
               const isSelected = selectedIds.includes(row.id);
               const isSaving = (field: string) => savingCell?.id === row.id && savingCell?.field === field;
 
@@ -246,7 +293,6 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
                     <EditableCell row={row} field="jumlah" value={row.jumlah} displayValue={<span className="font-medium text-slate-700 text-center block">{row.jumlah}</span>} onSave={handleInlineSave} isSaving={isSaving("jumlah")} editingCell={editingCell} setEditingCell={setEditingCell} />
                   </TableCell>
 
-                  {/* TANGGAL PEROLEHAN: Saat edit DD/MM/YYYY, Saat tampil 01 Januari 2026 */}
                   <TableCell>
                     <EditableCell row={row} field="tanggalPerolehan" value={formatToDDMMYYYY(row.tanggalPerolehan)} displayValue={<span className="text-slate-600">{formatTanggalIndo(row.tanggalPerolehan)}</span>} onSave={handleInlineSave} isSaving={isSaving("tanggalPerolehan")} editingCell={editingCell} setEditingCell={setEditingCell} />
                   </TableCell>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, Loader2, FolderMinus, Edit2, Check, X as XIcon } from "lucide-react";
+import { Pencil, Trash2, Loader2, FolderMinus, Edit2, Check, X as XIcon, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { deleteHapusBukuAset, deleteBulkHapusBukuAset, updateHapusBukuAset } from "@/actions/aset";
 
 // ==========================================
@@ -80,11 +80,54 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
   const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
   const [savingCell, setSavingCell] = useState<{id: string, field: string} | null>(null);
 
-  // ==========================================
+  // STATE UNTUK SORTING & SEARCHING
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // LOGIC SORTING
+  const handleSort = (key: string) => {
+    let direction: "asc" | "desc" = "asc";
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === "asc") {
+      direction = "desc";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // 1. FILTERING
+  const filteredData = data.filter((item) => {
+    if (!searchQuery) return true;
+    const lowerQuery = searchQuery.toLowerCase();
+    return (
+      item.nomorRegisterAset?.toLowerCase().includes(lowerQuery) ||
+      item.namaAset?.toLowerCase().includes(lowerQuery) ||
+      item.alasanHapusBuku?.toLowerCase().includes(lowerQuery)
+    );
+  });
+
+  // 2. SORTING
+  const processedData = [...filteredData].sort((a, b) => {
+    if (!sortConfig) return 0;
+    const { key, direction } = sortConfig;
+    let aValue = a[key];
+    let bValue = b[key];
+
+    if (typeof aValue === "string") aValue = aValue.toLowerCase();
+    if (typeof bValue === "string") bValue = bValue.toLowerCase();
+
+    if (aValue < bValue) return direction === "asc" ? -1 : 1;
+    if (aValue > bValue) return direction === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  const SortIcon = ({ columnKey }: { columnKey: string }) => {
+    if (sortConfig?.key !== columnKey) return <ArrowUpDown className="w-3 h-3 text-slate-300 ml-1 opacity-50 group-hover:opacity-100 transition-opacity" />;
+    if (sortConfig.direction === "asc") return <ArrowUp className="w-3 h-3 text-rose-600 ml-1" />;
+    return <ArrowDown className="w-3 h-3 text-rose-600 ml-1" />;
+  };
+
   // LOGIC SELEKSI MASSAL
-  // ==========================================
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) setSelectedIds(data.map(item => item.id));
+    if (e.target.checked) setSelectedIds(processedData.map(item => item.id));
     else setSelectedIds([]);
   };
 
@@ -92,9 +135,7 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
     setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
   };
 
-  // ==========================================
-  // LOGIC HAPUS (MASSAL & SATUAN)
-  // ==========================================
+  // LOGIC HAPUS
   const handleBulkDelete = async () => {
     if (!confirm(`Apakah Anda yakin ingin menghapus ${selectedIds.length} data terpilih?`)) return;
     
@@ -105,9 +146,7 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
     if (res.success) {
       setSelectedIds([]); 
       onRefresh(); 
-    } else {
-      alert(res.message);
-    }
+    } else alert(res.message);
   };
 
   const handleDelete = async (id: string) => {
@@ -121,11 +160,8 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
     } else alert(res.message);
   };
 
-  // ==========================================
   // LOGIC SIMPAN INLINE EDITING
-  // ==========================================
   const handleInlineSave = async (row: any, field: string, newValue: string) => {
-    // Validasi Regex untuk Tanggal
     if (field === 'tanggalHapusBuku') {
       const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/\d{4}$/;
       if (!dateRegex.test(newValue)) {
@@ -137,7 +173,6 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
     setSavingCell({ id: row.id, field });
     
     try {
-      // Pastikan semua tipe data sesuai dengan Schema Prisma Hapus Buku
       const payload = {
         ...row,
         jumlah: Number(row.jumlah),
@@ -149,7 +184,6 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
         tanggalPerolehan: new Date(row.tanggalPerolehan)
       };
 
-      // Parsing value baru sesuai tipe datanya
       if (['hargaPerolehan', 'akmPenyusutan', 'nilaiBuku'].includes(field)) {
         payload[field] = Number(String(newValue).replace(/\D/g, ''));
       } else if (field === 'tanggalHapusBuku') {
@@ -183,6 +217,20 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden relative">
       
+      {/* SEARCH BAR */}
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-4 bg-slate-50/50">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input 
+            type="text"
+            placeholder="Cari no. register, aset, atau alasan..."
+            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all shadow-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
       {/* BAR AKSI MASSAL */}
       {selectedIds.length > 0 && (
         <div className="bg-rose-50/90 backdrop-blur-sm border-b border-rose-100 px-4 py-3 flex items-center justify-between animate-in slide-in-from-top-2">
@@ -205,79 +253,108 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
               <TableHead className="w-[40px] text-center">
                 <input 
                   type="checkbox" 
-                  checked={selectedIds.length === data.length && data.length > 0} 
+                  checked={selectedIds.length === processedData.length && processedData.length > 0} 
                   onChange={handleSelectAll} 
                   className="w-4 h-4 rounded border-slate-300 cursor-pointer accent-rose-600" 
                 />
               </TableHead>
               <TableHead className="w-[50px] text-center font-bold text-slate-600">No</TableHead>
-              <TableHead className="font-bold text-slate-600">Tgl Hapus</TableHead>
-              <TableHead className="font-bold text-slate-600">No. Register</TableHead>
-              <TableHead className="font-bold text-slate-600">Nama Aset</TableHead>
-              <TableHead className="text-right font-bold text-slate-600">Harga Perolehan</TableHead>
-              <TableHead className="text-right font-bold text-slate-600">Akm. Susut</TableHead>
-              <TableHead className="text-right font-bold text-slate-600">Nilai Buku</TableHead>
-              <TableHead className="font-bold text-slate-600">Alasan</TableHead>
+              
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('tanggalHapusBuku')}>
+                <div className="flex items-center">Tgl Hapus <SortIcon columnKey="tanggalHapusBuku" /></div>
+              </TableHead>
+              
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('nomorRegisterAset')}>
+                <div className="flex items-center">No. Register <SortIcon columnKey="nomorRegisterAset" /></div>
+              </TableHead>
+              
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('namaAset')}>
+                <div className="flex items-center">Nama Aset <SortIcon columnKey="namaAset" /></div>
+              </TableHead>
+              
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('hargaPerolehan')}>
+                <div className="flex items-center justify-end">Harga Perolehan <SortIcon columnKey="hargaPerolehan" /></div>
+              </TableHead>
+              
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('akmPenyusutan')}>
+                <div className="flex items-center justify-end">Akm. Susut <SortIcon columnKey="akmPenyusutan" /></div>
+              </TableHead>
+              
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('nilaiBuku')}>
+                <div className="flex items-center justify-end">Nilai Buku <SortIcon columnKey="nilaiBuku" /></div>
+              </TableHead>
+              
+              <TableHead className="font-bold text-slate-600 cursor-pointer hover:bg-slate-100 group select-none" onClick={() => handleSort('alasanHapusBuku')}>
+                <div className="flex items-center">Alasan <SortIcon columnKey="alasanHapusBuku" /></div>
+              </TableHead>
+              
               <TableHead className="text-center font-bold text-slate-600">Aksi</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.map((row, index) => {
-              const isSelected = selectedIds.includes(row.id);
-              const isSaving = (field: string) => savingCell?.id === row.id && savingCell?.field === field;
+            {processedData.length > 0 ? (
+              processedData.map((row, index) => {
+                const isSelected = selectedIds.includes(row.id);
+                const isSaving = (field: string) => savingCell?.id === row.id && savingCell?.field === field;
 
-              return (
-                <TableRow key={row.id} className={`transition-colors group ${isSelected ? 'bg-rose-50/50 hover:bg-rose-50/80' : 'hover:bg-slate-50'}`}>
-                  <TableCell className="text-center">
-                    <input 
-                      type="checkbox" 
-                      checked={isSelected} 
-                      onChange={() => handleSelectRow(row.id)} 
-                      className="w-4 h-4 rounded border-slate-300 cursor-pointer accent-rose-600" 
-                    />
-                  </TableCell>
-                  <TableCell className="text-center font-medium text-slate-500">{index + 1}</TableCell>
-                  
-                  {/* EDITABLE CELLS */}
-                  <TableCell>
-                    <EditableCell row={row} field="tanggalHapusBuku" value={formatToDDMMYYYY(row.tanggalHapusBuku)} displayValue={<span className="text-slate-600">{formatTanggal(row.tanggalHapusBuku)}</span>} onSave={handleInlineSave} isSaving={isSaving("tanggalHapusBuku")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
-                  <TableCell>
-                    <EditableCell row={row} field="nomorRegisterAset" value={row.nomorRegisterAset} displayValue={<span className="font-semibold text-slate-800">{row.nomorRegisterAset}</span>} onSave={handleInlineSave} isSaving={isSaving("nomorRegisterAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
-                  <TableCell>
-                    <EditableCell row={row} field="namaAset" value={row.namaAset} displayValue={<span className="text-slate-700">{row.namaAset}</span>} onSave={handleInlineSave} isSaving={isSaving("namaAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
-                  <TableCell>
-                    <EditableCell row={row} field="hargaPerolehan" value={row.hargaPerolehan} displayValue={<span className="text-slate-600 flex justify-end w-full">{formatRupiah(row.hargaPerolehan)}</span>} onSave={handleInlineSave} isSaving={isSaving("hargaPerolehan")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
-                  <TableCell>
-                    <EditableCell row={row} field="akmPenyusutan" value={row.akmPenyusutan} displayValue={<span className="text-rose-600 font-medium flex justify-end w-full">{formatRupiah(row.akmPenyusutan)}</span>} onSave={handleInlineSave} isSaving={isSaving("akmPenyusutan")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
-                  <TableCell>
-                    <EditableCell row={row} field="nilaiBuku" value={row.nilaiBuku} displayValue={<span className="font-bold text-slate-800 flex justify-end w-full">{formatRupiah(row.nilaiBuku)}</span>} onSave={handleInlineSave} isSaving={isSaving("nilaiBuku")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
-                  <TableCell>
-                    <EditableCell row={row} field="alasanHapusBuku" value={row.alasanHapusBuku} displayValue={
-                      <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-medium tracking-wide truncate block max-w-[150px]">
-                        {row.alasanHapusBuku}
-                      </span>
-                    } onSave={handleInlineSave} isSaving={isSaving("alasanHapusBuku")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
+                return (
+                  <TableRow key={row.id} className={`transition-colors group ${isSelected ? 'bg-rose-50/50 hover:bg-rose-50/80' : 'hover:bg-slate-50'}`}>
+                    <TableCell className="text-center">
+                      <input 
+                        type="checkbox" 
+                        checked={isSelected} 
+                        onChange={() => handleSelectRow(row.id)} 
+                        className="w-4 h-4 rounded border-slate-300 cursor-pointer accent-rose-600" 
+                      />
+                    </TableCell>
+                    <TableCell className="text-center font-medium text-slate-500">{index + 1}</TableCell>
+                    
+                    <TableCell>
+                      <EditableCell row={row} field="tanggalHapusBuku" value={formatToDDMMYYYY(row.tanggalHapusBuku)} displayValue={<span className="text-slate-600">{formatTanggal(row.tanggalHapusBuku)}</span>} onSave={handleInlineSave} isSaving={isSaving("tanggalHapusBuku")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="nomorRegisterAset" value={row.nomorRegisterAset} displayValue={<span className="font-semibold text-slate-800">{row.nomorRegisterAset}</span>} onSave={handleInlineSave} isSaving={isSaving("nomorRegisterAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="namaAset" value={row.namaAset} displayValue={<span className="text-slate-700">{row.namaAset}</span>} onSave={handleInlineSave} isSaving={isSaving("namaAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="hargaPerolehan" value={row.hargaPerolehan} displayValue={<span className="text-slate-600 flex justify-end w-full">{formatRupiah(row.hargaPerolehan)}</span>} onSave={handleInlineSave} isSaving={isSaving("hargaPerolehan")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="akmPenyusutan" value={row.akmPenyusutan} displayValue={<span className="text-rose-600 font-medium flex justify-end w-full">{formatRupiah(row.akmPenyusutan)}</span>} onSave={handleInlineSave} isSaving={isSaving("akmPenyusutan")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="nilaiBuku" value={row.nilaiBuku} displayValue={<span className="font-bold text-slate-800 flex justify-end w-full">{formatRupiah(row.nilaiBuku)}</span>} onSave={handleInlineSave} isSaving={isSaving("nilaiBuku")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="alasanHapusBuku" value={row.alasanHapusBuku} displayValue={
+                        <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md text-xs font-medium tracking-wide truncate block max-w-[150px]">
+                          {row.alasanHapusBuku}
+                        </span>
+                      } onSave={handleInlineSave} isSaving={isSaving("alasanHapusBuku")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
 
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => onEdit(row)} className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors" title="Edit Full (Modal)">
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button onClick={() => handleDelete(row.id)} disabled={deletingId === row.id} className="p-1.5 text-rose-600 hover:bg-rose-100 rounded-md transition-colors disabled:opacity-50" title="Hapus Data">
-                        {deletingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => onEdit(row)} className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors" title="Edit Full (Modal)">
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => handleDelete(row.id)} disabled={deletingId === row.id} className="p-1.5 text-rose-600 hover:bg-rose-100 rounded-md transition-colors disabled:opacity-50" title="Hapus Data">
+                          {deletingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={9} className="h-24 text-center text-slate-500">
+                  Data tidak ditemukan.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

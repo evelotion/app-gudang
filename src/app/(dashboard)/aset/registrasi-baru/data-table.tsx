@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, Loader2, FolderOpen, Edit2, Check, X as XIcon, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Pencil, Trash2, Loader2, FolderOpen, Edit2, Check, X as XIcon, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
 import { deleteRegistrasiAset, deleteBulkRegistrasiAset, updateRegistrasiAset } from "@/actions/aset";
 import { formatTanggalIndo } from "@/lib/utils"; 
 
@@ -78,8 +78,9 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
   const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
   const [savingCell, setSavingCell] = useState<{id: string, field: string} | null>(null);
 
-  // STATE UNTUK SORTING
+  // STATE UNTUK SORTING & SEARCHING
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // LOGIC SORTING
   const handleSort = (key: string) => {
@@ -90,7 +91,20 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
     setSortConfig({ key, direction });
   };
 
-  const sortedData = [...data].sort((a, b) => {
+  // 1. FILTERING DATA BERDASARKAN PENCARIAN
+  const filteredData = data.filter((item) => {
+    if (!searchQuery) return true;
+    const lowerQuery = searchQuery.toLowerCase();
+    return (
+      item.cabangUnitKerja?.toLowerCase().includes(lowerQuery) ||
+      item.namaAset?.toLowerCase().includes(lowerQuery) ||
+      item.nomorRegisterAset?.toLowerCase().includes(lowerQuery) ||
+      item.userPengguna?.toLowerCase().includes(lowerQuery)
+    );
+  });
+
+  // 2. SORTING DARI DATA YANG SUDAH DI-FILTER
+  const processedData = [...filteredData].sort((a, b) => {
     if (!sortConfig) return 0;
     
     const { key, direction } = sortConfig;
@@ -112,7 +126,7 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
   };
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) setSelectedIds(sortedData.map(item => item.id));
+    if (e.target.checked) setSelectedIds(processedData.map(item => item.id));
     else setSelectedIds([]);
   };
 
@@ -206,6 +220,20 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden relative">
       
+      {/* BAR PENCARIAN (SEARCH BAR) */}
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-4 bg-slate-50/50">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input 
+            type="text"
+            placeholder="Cari cabang, nama aset, nomor register..."
+            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-sm"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
       {selectedIds.length > 0 && (
         <div className="bg-indigo-50/90 backdrop-blur-sm border-b border-indigo-100 px-4 py-3 flex items-center justify-between animate-in slide-in-from-top-2">
           <span className="text-sm text-indigo-700 font-bold">{selectedIds.length} data dipilih</span>
@@ -227,7 +255,7 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
               <TableHead className="w-[40px] text-center">
                 <input 
                   type="checkbox" 
-                  checked={selectedIds.length === data.length && data.length > 0} 
+                  checked={selectedIds.length === processedData.length && processedData.length > 0} 
                   onChange={handleSelectAll} 
                   className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer accent-indigo-600" 
                 />
@@ -261,76 +289,84 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedData.map((row, index) => {
-              const isSelected = selectedIds.includes(row.id);
-              const isSaving = (field: string) => savingCell?.id === row.id && savingCell?.field === field;
+            {processedData.length > 0 ? (
+              processedData.map((row, index) => {
+                const isSelected = selectedIds.includes(row.id);
+                const isSaving = (field: string) => savingCell?.id === row.id && savingCell?.field === field;
 
-              return (
-                <TableRow key={row.id} className={`transition-colors ${isSelected ? 'bg-indigo-50/50 hover:bg-indigo-50/80' : 'hover:bg-slate-50'}`}>
-                  <TableCell className="text-center">
-                    <input 
-                      type="checkbox" 
-                      checked={isSelected} 
-                      onChange={() => handleSelectRow(row.id)} 
-                      className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer accent-indigo-600" 
-                    />
-                  </TableCell>
-                  <TableCell className="text-center font-medium text-slate-500">{index + 1}</TableCell>
-                  
-                  <TableCell>
-                    <EditableCell row={row} field="nomorRegisterAset" value={row.nomorRegisterAset} displayValue={<span className="font-semibold text-slate-800">{row.nomorRegisterAset}</span>} onSave={handleInlineSave} isSaving={isSaving("nomorRegisterAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <EditableCell row={row} field="namaAset" value={row.namaAset} displayValue={<span className="text-slate-700">{row.namaAset}</span>} onSave={handleInlineSave} isSaving={isSaving("namaAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <EditableCell row={row} field="golonganAset" value={row.golonganAset} displayValue={<span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 rounded-md text-xs font-semibold tracking-wide">{row.golonganAset}</span>} onSave={handleInlineSave} isSaving={isSaving("golonganAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
+                return (
+                  <TableRow key={row.id} className={`transition-colors ${isSelected ? 'bg-indigo-50/50 hover:bg-indigo-50/80' : 'hover:bg-slate-50'}`}>
+                    <TableCell className="text-center">
+                      <input 
+                        type="checkbox" 
+                        checked={isSelected} 
+                        onChange={() => handleSelectRow(row.id)} 
+                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer accent-indigo-600" 
+                      />
+                    </TableCell>
+                    <TableCell className="text-center font-medium text-slate-500">{index + 1}</TableCell>
+                    
+                    <TableCell>
+                      <EditableCell row={row} field="nomorRegisterAset" value={row.nomorRegisterAset} displayValue={<span className="font-semibold text-slate-800">{row.nomorRegisterAset}</span>} onSave={handleInlineSave} isSaving={isSaving("nomorRegisterAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <EditableCell row={row} field="namaAset" value={row.namaAset} displayValue={<span className="text-slate-700">{row.namaAset}</span>} onSave={handleInlineSave} isSaving={isSaving("namaAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <EditableCell row={row} field="golonganAset" value={row.golonganAset} displayValue={<span className="px-2.5 py-1 bg-indigo-100 text-indigo-700 rounded-md text-xs font-semibold tracking-wide">{row.golonganAset}</span>} onSave={handleInlineSave} isSaving={isSaving("golonganAset")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
 
-                  <TableCell>
-                    <EditableCell row={row} field="jumlah" value={row.jumlah} displayValue={<span className="font-medium text-slate-700 text-center block">{row.jumlah}</span>} onSave={handleInlineSave} isSaving={isSaving("jumlah")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="jumlah" value={row.jumlah} displayValue={<span className="font-medium text-slate-700 text-center block">{row.jumlah}</span>} onSave={handleInlineSave} isSaving={isSaving("jumlah")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
 
-                  <TableCell>
-                    <EditableCell row={row} field="tanggalPerolehan" value={formatToDDMMYYYY(row.tanggalPerolehan)} displayValue={<span className="text-slate-600">{formatTanggalIndo(row.tanggalPerolehan)}</span>} onSave={handleInlineSave} isSaving={isSaving("tanggalPerolehan")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="tanggalPerolehan" value={formatToDDMMYYYY(row.tanggalPerolehan)} displayValue={<span className="text-slate-600">{formatTanggalIndo(row.tanggalPerolehan)}</span>} onSave={handleInlineSave} isSaving={isSaving("tanggalPerolehan")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
 
-                  <TableCell>
-                    <EditableCell row={row} field="hargaPerolehan" value={row.hargaPerolehan} displayValue={<span className="font-semibold text-emerald-600">{formatRupiah(row.hargaPerolehan)}</span>} onSave={handleInlineSave} isSaving={isSaving("hargaPerolehan")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="hargaPerolehan" value={row.hargaPerolehan} displayValue={<span className="font-semibold text-emerald-600">{formatRupiah(row.hargaPerolehan)}</span>} onSave={handleInlineSave} isSaving={isSaving("hargaPerolehan")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
 
-                  <TableCell>
-                    <EditableCell row={row} field="cabangUnitKerja" value={row.cabangUnitKerja} displayValue={<span className="text-slate-600">{row.cabangUnitKerja}</span>} onSave={handleInlineSave} isSaving={isSaving("cabangUnitKerja")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
+                    <TableCell>
+                      <EditableCell row={row} field="cabangUnitKerja" value={row.cabangUnitKerja} displayValue={<span className="text-slate-600">{row.cabangUnitKerja}</span>} onSave={handleInlineSave} isSaving={isSaving("cabangUnitKerja")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
 
-                  <TableCell>
-                    <EditableCell row={row} field="userPengguna" value={row.userPengguna} displayValue={<span className="text-slate-600">{row.userPengguna}</span>} onSave={handleInlineSave} isSaving={isSaving("userPengguna")} editingCell={editingCell} setEditingCell={setEditingCell} />
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => onEdit(row)} 
-                        className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
-                        title="Edit Full (Buka Modal)"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => handleDelete(row.id)} 
-                        disabled={deletingId === row.id}
-                        className="p-1.5 text-rose-600 hover:bg-rose-100 rounded-md transition-colors disabled:opacity-50"
-                        title="Hapus Data"
-                      >
-                        {deletingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                    <TableCell>
+                      <EditableCell row={row} field="userPengguna" value={row.userPengguna} displayValue={<span className="text-slate-600">{row.userPengguna}</span>} onSave={handleInlineSave} isSaving={isSaving("userPengguna")} editingCell={editingCell} setEditingCell={setEditingCell} />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => onEdit(row)} 
+                          className="p-1.5 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
+                          title="Edit Full (Buka Modal)"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(row.id)} 
+                          disabled={deletingId === row.id}
+                          className="p-1.5 text-rose-600 hover:bg-rose-100 rounded-md transition-colors disabled:opacity-50"
+                          title="Hapus Data"
+                        >
+                          {deletingId === row.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={11} className="h-24 text-center text-slate-500">
+                  Data tidak ditemukan.
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>

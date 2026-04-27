@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, Loader2, FolderOpen, Edit2, Check, X as XIcon, ArrowUpDown, ArrowUp, ArrowDown, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2, Loader2, FolderOpen, Edit2, Check, X as XIcon, ArrowUpDown, ArrowUp, ArrowDown, Search, FileSpreadsheet } from "lucide-react";
 import { deleteRegistrasiAset, deleteBulkRegistrasiAset, updateRegistrasiAset } from "@/actions/aset";
-import { formatTanggalIndo } from "@/lib/utils"; 
+import { formatTanggalIndo } from "@/lib/utils";
+import { toast } from "sonner";
 
 const formatRupiah = (angka: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
@@ -73,6 +75,7 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // STATE UNTUK INLINE EDITING
   const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
@@ -81,6 +84,33 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
   // STATE UNTUK SORTING & SEARCHING
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // LOGIC EXPORT EXCEL
+  const handleExportExcel = async () => {
+    try {
+      setIsExporting(true);
+      const response = await fetch('/api/export/excel/registrasi');
+      
+      if (!response.ok) throw new Error('Gagal mengunduh file');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Data_Registrasi_Aset_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Excel berhasil diunduh");
+    } catch (error) {
+      console.error(error);
+      toast.error("Terjadi kesalahan saat export Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // LOGIC SORTING
   const handleSort = (key: string) => {
@@ -220,8 +250,8 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden relative">
       
-      {/* BAR PENCARIAN (SEARCH BAR) */}
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-4 bg-slate-50/50">
+      {/* BAR PENCARIAN (SEARCH BAR) & EXPORT EXCEL */}
+      <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input 
@@ -232,6 +262,22 @@ export default function DataTableRegistrasi({ data, onEdit, onRefresh }: { data:
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+
+        {/* TOMBOL EXCEL BARU */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleExportExcel}
+          disabled={isExporting}
+          className="text-emerald-700 border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800 w-full sm:w-auto"
+        >
+          {isExporting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+          )}
+          {isExporting ? "Memproses..." : "Export Excel"}
+        </Button>
       </div>
 
       {selectedIds.length > 0 && (

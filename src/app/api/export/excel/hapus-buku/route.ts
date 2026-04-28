@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     workbook.creator = 'App Gudang';
     const worksheet = workbook.addWorksheet('Hapus Buku Aset');
 
+    // Kolom Status telah dihapus dari daftar ini
     worksheet.columns = [
       { header: 'No', key: 'no', width: 5 },
       { header: 'Tanggal Input', key: 'tanggalInput', width: 15 },
@@ -31,7 +32,6 @@ export async function GET(request: Request) {
       { header: 'Cabang / Unit', key: 'cabangUnitKerja', width: 20 },
       { header: 'Alasan', key: 'alasanHapusBuku', width: 35 },
       { header: 'Operator', key: 'operatorName', width: 20 },
-      { header: 'Status', key: 'status', width: 15 },
     ];
 
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
@@ -55,7 +55,6 @@ export async function GET(request: Request) {
         cabangUnitKerja: aset.cabangUnitKerja,
         alasanHapusBuku: aset.alasanHapusBuku,
         operatorName: aset.operatorName,
-        status: aset.status,
       });
     });
 

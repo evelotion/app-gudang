@@ -5,7 +5,6 @@ import ExcelJS from 'exceljs';
 export async function GET(request: Request) {
   try {
     // 1. Ambil data dari database
-    // Lo bisa modifikasi ini nanti untuk menerima parameter filter (misal: rentang tanggal)
     const dataAset = await prisma.registrasiAset.findMany({
       orderBy: { tanggalInput: 'desc' },
     });
@@ -19,7 +18,7 @@ export async function GET(request: Request) {
     workbook.creator = 'App Gudang';
     const worksheet = workbook.addWorksheet('Registrasi Aset');
 
-    // 3. Definisikan Struktur Kolom
+    // 3. Definisikan Struktur Kolom (KOLOM STATUS TELAH DIHAPUS)
     worksheet.columns = [
       { header: 'No', key: 'no', width: 5 },
       { header: 'Tanggal Input', key: 'tanggalInput', width: 15 },
@@ -32,7 +31,6 @@ export async function GET(request: Request) {
       { header: 'Cabang/Unit', key: 'cabangUnitKerja', width: 20 },
       { header: 'Pengguna', key: 'userPengguna', width: 20 },
       { header: 'Lokasi', key: 'lokasiPosisiAset', width: 20 },
-      { header: 'Status', key: 'status', width: 15 },
     ];
 
     // 4. Styling Baris Header
@@ -58,13 +56,12 @@ export async function GET(request: Request) {
         jumlah: aset.jumlah,
         tanggalPerolehan: aset.tanggalPerolehan,
         
-        // WAJIB: Convert Prisma Decimal ke Number agar terbaca sebagai angka di Excel
+        // Convert Prisma Decimal ke Number agar terbaca sebagai angka di Excel
         hargaPerolehan: Number(aset.hargaPerolehan),
         
         cabangUnitKerja: aset.cabangUnitKerja,
         userPengguna: aset.userPengguna,
         lokasiPosisiAset: aset.lokasiPosisiAset,
-        status: aset.status,
       });
     });
 

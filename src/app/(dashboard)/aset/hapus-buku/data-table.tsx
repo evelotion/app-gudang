@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import FormBulkEdit from "./form-bulk-edit";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Pencil, Trash2, Loader2, FolderMinus, Edit2, Check, X as XIcon, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2, Loader2, FolderMinus, Edit2, Check, X as XIcon, Search, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet } from "lucide-react";
 import { deleteHapusBukuAset, deleteBulkHapusBukuAset, updateHapusBukuAset } from "@/actions/aset";
+import { toast } from "sonner";
 
 // ==========================================
 // HELPER FORMATTERS
@@ -72,9 +75,16 @@ const EditableCell = ({ row, field, value, displayValue, onSave, isSaving, editi
 export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: any[], onEdit: (item: any) => void, onRefresh: () => void }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // STATE UNTUK BULK DELETE
+  // STATE UNTUK BULK DELETE & BULK EDIT
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+
+  // STATE UNTUK EXPORT EXCEL
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState("");
+  const [exportEndDate, setExportEndDate] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   // STATE UNTUK INLINE EDITING
   const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
@@ -83,6 +93,38 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
   // STATE UNTUK SORTING & SEARCHING
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // LOGIC EXPORT EXCEL
+  const handleExportExcel = async () => {
+    if (!exportStartDate || !exportEndDate) {
+      toast.error("Pilih tanggal awal dan akhir terlebih dahulu!");
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      const response = await fetch(`/api/export/excel/hapus-buku?start=${exportStartDate}&end=${exportEndDate}`);
+      
+      if (!response.ok) throw new Error('Gagal mengunduh file');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Data_Hapus_Buku_${exportStartDate}_sd_${exportEndDate}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("Excel berhasil diunduh");
+      setShowExportModal(false);
+    } catch (error) {
+      toast.error("Terjadi kesalahan saat export Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // LOGIC SORTING
   const handleSort = (key: string) => {
@@ -217,8 +259,8 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden relative">
       
-      {/* SEARCH BAR */}
-      <div className="p-4 border-b border-slate-100 flex items-center justify-between gap-4 bg-slate-50/50">
+      {/* SEARCH BAR & EXPORT EXCEL */}
+      <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input 
@@ -229,20 +271,40 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        
+        {/* TOMBOL BUKA MODAL EXCEL */}
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setShowExportModal(true)}
+          className="text-emerald-700 border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800 w-full sm:w-auto"
+        >
+          <FileSpreadsheet className="mr-2 h-4 w-4" />
+          Export Excel
+        </Button>
       </div>
 
       {/* BAR AKSI MASSAL */}
       {selectedIds.length > 0 && (
         <div className="bg-rose-50/90 backdrop-blur-sm border-b border-rose-100 px-4 py-3 flex items-center justify-between animate-in slide-in-from-top-2">
           <span className="text-sm text-rose-700 font-bold">{selectedIds.length} data dipilih</span>
-          <button
-            onClick={handleBulkDelete}
-            disabled={isBulkDeleting}
-            className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 shadow-sm"
-          >
-            {isBulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            Hapus Terpilih
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowBulkEdit(true)}
+              className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors shadow-sm"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit Terpilih
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={isBulkDeleting}
+              className="flex items-center gap-2 bg-slate-100 hover:bg-rose-100 text-rose-600 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {isBulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+              Hapus Terpilih
+            </button>
+          </div>
         </div>
       )}
 
@@ -358,6 +420,55 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
           </TableBody>
         </Table>
       </div>
+
+      {/* RENDER MODAL BULK EDIT */}
+      {showBulkEdit && (
+        <FormBulkEdit 
+          selectedData={data.filter(item => selectedIds.includes(item.id))} 
+          onSuccess={() => {
+            setShowBulkEdit(false);
+            setSelectedIds([]); 
+            onRefresh();
+          }} 
+          onCancel={() => setShowBulkEdit(false)} 
+        />
+      )}
+
+      {/* RENDER MODAL EXPORT DENGAN FILTER TANGGAL */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white/95 backdrop-blur-md w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-6 flex flex-col gap-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-600"/> Export by Tanggal
+              </h3>
+              <button onClick={() => setShowExportModal(false)} className="text-slate-400 hover:text-rose-500 transition-colors">
+                <XIcon className="w-5 h-5"/>
+              </button>
+            </div>
+            
+            <div className="flex gap-4 mt-2">
+              <div className="w-full">
+                <label className="text-xs font-semibold text-slate-600 mb-1 block">Dari Tanggal</label>
+                <input type="date" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none shadow-sm" />
+              </div>
+              <div className="w-full">
+                <label className="text-xs font-semibold text-slate-600 mb-1 block">Sampai Tanggal</label>
+                <input type="date" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none shadow-sm" />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+              <Button variant="outline" onClick={() => setShowExportModal(false)} className="border-slate-300 text-slate-600 hover:bg-slate-50">
+                Batal
+              </Button>
+              <Button onClick={handleExportExcel} disabled={isExporting} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
+                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null} Download Excel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

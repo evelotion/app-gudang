@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import FormBulkEditMutasi from "./form-bulk-edit";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { PackageOpen, Pencil, Trash2, Loader2, Edit2, Check, X as XIcon, Search, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet } from "lucide-react";
@@ -73,19 +74,26 @@ const EditableCell = ({ row, field, value, displayValue, onSave, isSaving, editi
 // ==========================================
 export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any[], onEdit: (item: any) => void, onRefresh: () => void }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  
+  // STATE BULK
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  
+  // STATE EXPORT
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState("");
+  const [exportEndDate, setExportEndDate] = useState("");
+
   const [editingCell, setEditingCell] = useState<{id: string, field: string} | null>(null);
   const [savingCell, setSavingCell] = useState<{id: string, field: string} | null>(null);
 
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   
-  // STATE BARU UNTUK PILIHAN GROUPING
   const [groupBy, setGroupBy] = useState<"golonganAset" | "lokasiAwal" | "lokasiTujuan">("golonganAset");
 
-  // MAP LABEL GROUPING BIAR RAPI DI UI
   const groupLabels: Record<string, string> = {
     golonganAset: "Golongan",
     lokasiAwal: "Lokasi Awal",
@@ -93,23 +101,28 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
   };
 
   const handleExportExcel = async () => {
+    if (!exportStartDate || !exportEndDate) {
+      toast.error("Pilih tanggal awal dan akhir terlebih dahulu!");
+      return;
+    }
+
     try {
       setIsExporting(true);
-      // PANGGIL API DENGAN PARAMETER GROUP BY
-      const response = await fetch(`/api/export/excel/mutasi?groupBy=${groupBy}`);
+      const response = await fetch(`/api/export/excel/mutasi?start=${exportStartDate}&end=${exportEndDate}&groupBy=${groupBy}`);
       if (!response.ok) throw new Error('Gagal mengunduh file');
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Data_Mutasi_Aset_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `Data_Mutasi_${exportStartDate}_sd_${exportEndDate}.xlsx`;
       document.body.appendChild(a);
       a.click();
       
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast.success("Excel berhasil diunduh");
+      setShowExportModal(false);
     } catch (error) {
       console.error(error);
       toast.error("Terjadi kesalahan saat export Excel");
@@ -229,7 +242,7 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
           />
         </div>
 
-        {/* KOLOM KANAN: DROPDOWN GROUP & TOMBOL EXCEL */}
+        {/* KOLOM KANAN: DROPDOWN GROUP & TOMBOL MODAL EXCEL */}
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="flex items-center gap-2">
             <span className="text-sm text-slate-500 font-medium hidden sm:inline-block">Group By:</span>
@@ -244,9 +257,9 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
             </select>
           </div>
           
-          <Button variant="outline" size="sm" onClick={handleExportExcel} disabled={isExporting} className="text-emerald-700 border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800">
-            {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSpreadsheet className="mr-2 h-4 w-4" />}
-            {isExporting ? "Memproses..." : "Export Excel"}
+          <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)} className="text-emerald-700 border-emerald-600 hover:bg-emerald-50 hover:text-emerald-800">
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Export Excel
           </Button>
         </div>
 
@@ -255,9 +268,18 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
       {selectedIds.length > 0 && (
         <div className="bg-indigo-50/90 backdrop-blur-sm border-b border-indigo-100 px-4 py-3 flex items-center justify-between animate-in slide-in-from-top-2">
           <span className="text-sm text-indigo-900 font-bold">{selectedIds.length} data dipilih</span>
-          <button onClick={handleBulkDelete} disabled={isBulkDeleting} className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50">
-            {isBulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Hapus
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowBulkEdit(true)}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+              Edit Terpilih
+            </button>
+            <button onClick={handleBulkDelete} disabled={isBulkDeleting} className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-sm transition-colors disabled:opacity-50">
+              {isBulkDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />} Hapus
+            </button>
+          </div>
         </div>
       )}
       
@@ -350,6 +372,56 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
           </TableBody>
         </Table>
       </div>
+
+      {/* RENDER MODAL BULK EDIT */}
+      {showBulkEdit && (
+        <FormBulkEditMutasi 
+          selectedData={data.filter(item => selectedIds.includes(item.id))} 
+          onSuccess={() => {
+            setShowBulkEdit(false);
+            setSelectedIds([]); 
+            onRefresh();
+          }} 
+          onCancel={() => setShowBulkEdit(false)} 
+        />
+      )}
+
+      {/* RENDER MODAL EXPORT DENGAN FILTER TANGGAL */}
+      {showExportModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white/95 backdrop-blur-md w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-6 flex flex-col gap-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-600"/> Export by Tanggal
+              </h3>
+              <button onClick={() => setShowExportModal(false)} className="text-slate-400 hover:text-rose-500 transition-colors">
+                <XIcon className="w-5 h-5"/>
+              </button>
+            </div>
+            
+            <div className="flex gap-4 mt-2">
+              <div className="w-full">
+                <label className="text-xs font-semibold text-slate-600 mb-1 block">Dari Tanggal</label>
+                <input type="date" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none shadow-sm" />
+              </div>
+              <div className="w-full">
+                <label className="text-xs font-semibold text-slate-600 mb-1 block">Sampai Tanggal</label>
+                <input type="date" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} className="w-full p-2.5 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/20 outline-none shadow-sm" />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-100">
+              <Button variant="outline" onClick={() => setShowExportModal(false)} className="border-slate-300 text-slate-600 hover:bg-slate-50">
+                Batal
+              </Button>
+              <Button onClick={handleExportExcel} disabled={isExporting} className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-md">
+                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null} Download Excel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

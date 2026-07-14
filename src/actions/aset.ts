@@ -24,7 +24,6 @@ export async function createRegistrasiAset(data: z.infer<typeof registrasiAsetSc
   }
 }
 
-// FUNGSI BARU: Untuk Bulk Insert Registrasi Aset (Lebih Cepat & Aman)
 export async function createBulkRegistrasiAset(dataArray: any[]) {
   try {
     await prisma.registrasiAset.createMany({
@@ -49,10 +48,8 @@ export async function updateRegistrasiAset(id: string, data: z.infer<typeof regi
   }
 }
 
-// FUNGSI BARU: Untuk Update Massal (Bulk Edit) dari UI Modal
 export async function updateBulkRegistrasiAset(dataArray: any[]) {
   try {
-    // Kita pakai transaction biar update jalannya berbarengan dan aman
     const transactions = dataArray.map((item) =>
       prisma.registrasiAset.update({
         where: { id: item.id },
@@ -123,7 +120,6 @@ export async function createHapusBukuAset(data: z.infer<typeof hapusBukuAsetSche
   }
 }
 
-// FUNGSI BARU: Untuk Bulk Insert Hapus Buku
 export async function createBulkHapusBukuAset(dataArray: any[]) {
   try {
     await prisma.hapusBukuAset.createMany({
@@ -145,6 +141,30 @@ export async function updateHapusBukuAset(id: string, data: z.infer<typeof hapus
     return { success: true, message: "Data hapus buku berhasil diupdate!" };
   } catch (error) { 
     return { success: false, message: "Gagal mengupdate data hapus buku." }; 
+  }
+}
+
+// FUNGSI BARU: Untuk Update Massal (Bulk Edit) Hapus Buku
+export async function updateBulkHapusBukuAset(dataArray: any[]) {
+  try {
+    const transactions = dataArray.map((item) =>
+      prisma.hapusBukuAset.update({
+        where: { id: item.id },
+        data: {
+          tanggalHapus: new Date(item.tanggalHapus),
+          nomorRegisterAset: item.nomorRegisterAset,
+          namaAset: item.namaAset,
+          jumlah: Number(item.jumlah),
+          alasanHapus: item.alasanHapus,
+        },
+      })
+    );
+    await prisma.$transaction(transactions);
+    revalidatePath("/aset/hapus-buku");
+    return { success: true, message: `${dataArray.length} data hapus buku berhasil diupdate!` };
+  } catch (error) {
+    console.error("Bulk Update Hapus Buku Error:", error);
+    return { success: false, message: "Gagal melakukan update massal hapus buku." };
   }
 }
 
@@ -191,7 +211,6 @@ export async function createMutasiAset(data: z.infer<typeof mutasiAsetSchema>) {
   }
 }
 
-// FUNGSI BARU: Untuk Bulk Insert Mutasi Aset
 export async function createBulkMutasiAset(dataArray: any[]) {
   try {
     await prisma.mutasiAset.createMany({
@@ -213,6 +232,31 @@ export async function updateMutasiAset(id: string, data: z.infer<typeof mutasiAs
     return { success: true, message: "Data mutasi aset berhasil diupdate!" };
   } catch (error) {
     return { success: false, message: "Gagal mengupdate data mutasi." };
+  }
+}
+
+// FUNGSI BARU: Untuk Update Massal (Bulk Edit) Mutasi
+export async function updateBulkMutasiAset(dataArray: any[]) {
+  try {
+    const transactions = dataArray.map((item) =>
+      prisma.mutasiAset.update({
+        where: { id: item.id },
+        data: {
+          tanggalMutasi: new Date(item.tanggalMutasi),
+          nomorRegisterAset: item.nomorRegisterAset,
+          namaAset: item.namaAset,
+          jumlah: Number(item.jumlah),
+          cabangAsal: item.cabangAsal,
+          cabangTujuan: item.cabangTujuan,
+        },
+      })
+    );
+    await prisma.$transaction(transactions);
+    revalidatePath("/aset/mutasi");
+    return { success: true, message: `${dataArray.length} data mutasi berhasil diupdate!` };
+  } catch (error) {
+    console.error("Bulk Update Mutasi Error:", error);
+    return { success: false, message: "Gagal melakukan update massal mutasi." };
   }
 }
 

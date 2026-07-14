@@ -4,12 +4,27 @@ import ExcelJS from 'exceljs';
 
 export async function GET(request: Request) {
   try {
-    // Tangkap parameter groupBy dari URL (default ke golonganAset kalau kosong)
     const { searchParams } = new URL(request.url);
     const groupBy = searchParams.get('groupBy') || 'golonganAset';
+    
+    // Tangkap parameter tanggal dari URL
+    const startDate = searchParams.get('start');
+    const endDate = searchParams.get('end');
 
-    // Ambil data dan urutkan berdasarkan parameter grouping yang dipilih user
+    // Bikin filter query database berdasarkan rentang tanggal
+    let whereClause = {};
+    if (startDate && endDate) {
+      whereClause = {
+        tanggalMutasi: {
+          gte: new Date(`${startDate}T00:00:00.000Z`), // Dari awal hari
+          lte: new Date(`${endDate}T23:59:59.999Z`),   // Sampai akhir hari
+        }
+      };
+    }
+
+    // Ambil data dengan filter tanggal dan urutkan berdasarkan parameter grouping
     const dataMutasi = await prisma.mutasiAset.findMany({
+      where: whereClause,
       orderBy: [
         { [groupBy]: 'asc' },
         { tanggalInput: 'desc' }
@@ -17,7 +32,7 @@ export async function GET(request: Request) {
     });
 
     if (!dataMutasi || dataMutasi.length === 0) {
-      return NextResponse.json({ error: 'Data mutasi tidak ditemukan' }, { status: 404 });
+      return NextResponse.json({ error: 'Data mutasi tidak ditemukan pada rentang tanggal tersebut' }, { status: 404 });
     }
 
     const workbook = new ExcelJS.Workbook();
@@ -115,11 +130,16 @@ export async function GET(request: Request) {
     worksheet.getColumn('tanggalPerolehan').numFmt = 'dd/mm/yyyy';
 
     const buffer = await workbook.xlsx.writeBuffer();
+    
+    // Nama file dinamis ngikutin filter tanggal kalau ada
+    const fileName = startDate && endDate 
+      ? `Data_Mutasi_Aset_${startDate}_sd_${endDate}.xlsx` 
+      : `Data_Mutasi_Aset.xlsx`;
 
     return new NextResponse(buffer, {
       status: 200,
       headers: {
-        'Content-Disposition': `attachment; filename="Data_Mutasi_Aset.xlsx"`,
+        'Content-Disposition': `attachment; filename="${fileName}"`,
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       },
     });

@@ -16,10 +16,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// Update metadata biar sesuai sama aplikasi Gudang lo
 export const metadata: Metadata = {
-  title: "GudangSync | Manajemen Gudang",
-  description: "Aplikasi manajemen stok dan inventaris gudang internal.",
+  title: "AsetKu | Manajemen Aset",
+  description: "Aplikasi manajemen registrasi, hapus buku, dan mutasi aset internal.",
 };
 
 export default function RootLayout({

@@ -151,11 +151,17 @@ export async function updateBulkHapusBukuAset(dataArray: any[]) {
       prisma.hapusBukuAset.update({
         where: { id: item.id },
         data: {
-          tanggalHapus: new Date(item.tanggalHapus),
+          tanggalHapusBuku: new Date(item.tanggalHapusBuku),
           nomorRegisterAset: item.nomorRegisterAset,
           namaAset: item.namaAset,
+          golonganAset: item.golonganAset,
           jumlah: Number(item.jumlah),
-          alasanHapus: item.alasanHapus,
+          tanggalPerolehan: new Date(item.tanggalPerolehan),
+          hargaPerolehan: Number(item.hargaPerolehan),
+          akmPenyusutan: Number(item.akmPenyusutan),
+          nilaiBuku: Number(item.nilaiBuku),
+          cabangUnitKerja: item.cabangUnitKerja,
+          alasanHapusBuku: item.alasanHapusBuku,
         },
       })
     );
@@ -213,14 +219,45 @@ export async function createMutasiAset(data: z.infer<typeof mutasiAsetSchema>) {
 
 export async function createBulkMutasiAset(dataArray: any[]) {
   try {
-    await prisma.mutasiAset.createMany({
-      data: dataArray,
-    });
+    if (!Array.isArray(dataArray) || dataArray.length === 0) {
+      return { success: false, message: "Tidak ada data yang dikirim." };
+    }
+
+    for (let i = 0; i < dataArray.length; i++) {
+      const row = dataArray[i];
+      const cekTanggal: [string, unknown][] = [
+        ["Tanggal Input", row.tanggalInput],
+        ["Tgl Mutasi", row.tanggalMutasi],
+        ["Tgl Perolehan", row.tanggalPerolehan],
+      ];
+      for (const [label, val] of cekTanggal) {
+        const d = val instanceof Date ? val : new Date(val as string);
+        if (Number.isNaN(d.getTime())) {
+          return { success: false, message: `Baris ${i + 1}: ${label} tidak valid.` };
+        }
+      }
+      const cekAngka: [string, unknown][] = [
+        ["Jumlah", row.jumlah],
+        ["Harga Perolehan", row.hargaPerolehan],
+        ["Akm. Penyusutan", row.akmPenyusutan],
+      ];
+      for (const [label, val] of cekAngka) {
+        if (!Number.isFinite(Number(val))) {
+          return { success: false, message: `Baris ${i + 1}: ${label} bukan angka yang valid.` };
+        }
+      }
+    }
+
+    const hasil = await prisma.mutasiAset.createMany({ data: dataArray });
     revalidatePath("/aset/mutasi");
-    return { success: true, message: `${dataArray.length} data mutasi aset berhasil disimpan!` };
+    return { success: true, message: `${hasil.count} data mutasi aset berhasil disimpan!` };
   } catch (error) {
     console.error("Bulk Insert Mutasi Error:", error);
-    return { success: false, message: "Gagal menyimpan data massal mutasi." };
+    const detail = error instanceof Error ? error.message.split("\n").pop()?.trim() : "";
+    return {
+      success: false,
+      message: `Gagal menyimpan data massal mutasi.${detail ? ` (${detail})` : ""}`,
+    };
   }
 }
 
@@ -245,9 +282,14 @@ export async function updateBulkMutasiAset(dataArray: any[]) {
           tanggalMutasi: new Date(item.tanggalMutasi),
           nomorRegisterAset: item.nomorRegisterAset,
           namaAset: item.namaAset,
+          golonganAset: item.golonganAset,
           jumlah: Number(item.jumlah),
-          cabangAsal: item.cabangAsal,
-          cabangTujuan: item.cabangTujuan,
+          tanggalPerolehan: new Date(item.tanggalPerolehan),
+          hargaPerolehan: Number(item.hargaPerolehan),
+          akmPenyusutan: Number(item.akmPenyusutan),
+          lokasiAwal: item.lokasiAwal,
+          lokasiTujuan: item.lokasiTujuan,
+          alasanMutasi: item.alasanMutasi,
         },
       })
     );

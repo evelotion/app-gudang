@@ -8,6 +8,13 @@ import { X, Save, Loader2, Eye, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { createMutasiAset, updateMutasiAset, createBulkMutasiAset } from "@/actions/aset"; // <-- IMPORT BULK ACTION DITAMBAHKAN DI SINI
 import { getSession } from "@/actions/auth";
 import { toast } from "sonner";
+import {
+  parseTanggalID,
+  parseTanggalInput,
+  toDDMMYYYY,
+  splitBaris,
+  ambilSel,
+} from "@/lib/date";
 
 // ==========================================
 // SCHEMA LOKAL UNTUK BULK INSERT (Semua String)
@@ -31,6 +38,33 @@ const bulkMutasiSchema = z.object({
 
 type FormValues = z.infer<typeof bulkMutasiSchema>;
 
+function bacaKolom(data: FormValues) {
+  return {
+    tglMutasi: splitBaris(data.tanggalMutasi),
+    noReg: splitBaris(data.nomorRegisterAset),
+    nama: splitBaris(data.namaAset),
+    gol: splitBaris(data.golonganAset),
+    jml: splitBaris(data.jumlah),
+    tglPerolehan: splitBaris(data.tanggalPerolehan),
+    hrg: splitBaris(data.hargaPerolehan),
+    akm: splitBaris(data.akmPenyusutan),
+    lokAwal: splitBaris(data.lokasiAwal),
+    lokTujuan: splitBaris(data.lokasiTujuan),
+    alasan: splitBaris(data.alasanMutasi),
+  };
+}
+
+function hitungMaxRows(kolom: Record<string, string[]>) {
+  return Math.max(0, ...Object.values(kolom).map((k) => k.length));
+}
+
+function bersihkanAngka(raw: string): number {
+  if (!raw) return 0;
+  const bersih = raw.replace(/[^\d,-]/g, "").replace(",", ".");
+  const n = Number(bersih);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export default function FormMutasi({ initialData, onCancel, onSuccess }: any) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [operator, setOperator] = useState("Loading...");
@@ -49,8 +83,8 @@ export default function FormMutasi({ initialData, onCancel, onSuccess }: any) {
       hargaPerolehan: String(initialData.hargaPerolehan),
       akmPenyusutan: String(initialData.akmPenyusutan),
       tanggalInput: new Date(initialData.tanggalInput).toISOString().split('T')[0],
-      tanggalMutasi: new Date(initialData.tanggalMutasi).toLocaleDateString('en-GB'), // DD/MM/YYYY
-      tanggalPerolehan: new Date(initialData.tanggalPerolehan).toLocaleDateString('en-GB'), // DD/MM/YYYY
+      tanggalMutasi: toDDMMYYYY(initialData.tanggalMutasi),
+      tanggalPerolehan: toDDMMYYYY(initialData.tanggalPerolehan),
     } : {
       tanggalInput: new Date().toISOString().split('T')[0],
       jumlah: "1",
@@ -76,34 +110,24 @@ export default function FormMutasi({ initialData, onCancel, onSuccess }: any) {
     if (!isValid) return toast.error("Mohon lengkapi semua field yang wajib diisi!");
 
     const data = getValues();
-    const splitLines = (str: string) => str ? str.split('\n').map(s => s.trim()).filter(Boolean) : [];
-    
-    const tglMutasi = splitLines(data.tanggalMutasi);
-    const noReg = splitLines(data.nomorRegisterAset);
-    const nama = splitLines(data.namaAset);
-    const gol = splitLines(data.golonganAset);
-    const jml = splitLines(data.jumlah);
-    const hrg = splitLines(data.hargaPerolehan);
-    const akm = splitLines(data.akmPenyusutan);
-    const lokAwal = splitLines(data.lokasiAwal);
-    const lokTujuan = splitLines(data.lokasiTujuan);
-    const alasan = splitLines(data.alasanMutasi);
-    
-    const maxRows = Math.max(noReg.length, nama.length, tglMutasi.length, hrg.length, lokAwal.length);
-    
+    const kolom = bacaKolom(data);
+    const maxRows = hitungMaxRows(kolom);
+
     const rows = [];
     for (let i = 0; i < maxRows; i++) {
+      const tanggalMutasi = ambilSel(kolom.tglMutasi, i);
       rows.push({
-        tanggalMutasi: tglMutasi[i] || tglMutasi[0] || "-",
-        nomorRegisterAset: noReg[i] || noReg[0] || "-",
-        namaAset: nama[i] || nama[0] || "-",
-        golonganAset: gol[i] || gol[0] || "-",
-        jumlah: jml[i] || jml[0] || "1",
-        hargaPerolehan: Number(hrg[i] || hrg[0] || 0),
-        akmPenyusutan: Number(akm[i] || akm[0] || 0),
-        lokasiAwal: lokAwal[i] || lokAwal[0] || "-",
-        lokasiTujuan: lokTujuan[i] || lokTujuan[0] || "-",
-        alasanMutasi: alasan[i] || alasan[0] || "-"
+        tanggalMutasi: tanggalMutasi || "-",
+        tanggalMutasiValid: parseTanggalID(tanggalMutasi) !== null,
+        nomorRegisterAset: ambilSel(kolom.noReg, i) || "-",
+        namaAset: ambilSel(kolom.nama, i) || "-",
+        golonganAset: ambilSel(kolom.gol, i) || "-",
+        jumlah: ambilSel(kolom.jml, i) || "1",
+        hargaPerolehan: bersihkanAngka(ambilSel(kolom.hrg, i)),
+        akmPenyusutan: bersihkanAngka(ambilSel(kolom.akm, i)),
+        lokasiAwal: ambilSel(kolom.lokAwal, i) || "-",
+        lokasiTujuan: ambilSel(kolom.lokTujuan, i) || "-",
+        alasanMutasi: ambilSel(kolom.alasan, i) || "-"
       });
     }
 
@@ -119,74 +143,94 @@ export default function FormMutasi({ initialData, onCancel, onSuccess }: any) {
     const toastId = toast.loading("Menyimpan data mutasi...");
     
     try {
-      const splitLines = (str: string) => str.split('\n').map(s => s.trim()).filter(Boolean);
-      
-      const tglMutasi = splitLines(data.tanggalMutasi);
-      const noReg = splitLines(data.nomorRegisterAset);
-      const nama = splitLines(data.namaAset);
-      const gol = splitLines(data.golonganAset);
-      const jml = splitLines(data.jumlah);
-      const tglPerolehan = splitLines(data.tanggalPerolehan);
-      const hrg = splitLines(data.hargaPerolehan);
-      const akm = splitLines(data.akmPenyusutan);
-      const lokAwal = splitLines(data.lokasiAwal);
-      const lokTujuan = splitLines(data.lokasiTujuan);
-      const alasan = splitLines(data.alasanMutasi);
-      
-      const maxRows = Math.max(noReg.length, nama.length, tglMutasi.length, hrg.length, lokAwal.length);
-      
-      const parseDateStr = (dateStr: string) => {
-        if (dateStr.includes('/')) {
-          const [d, m, y] = dateStr.split('/');
-          return new Date(`${y}-${m}-${d}T00:00:00Z`);
+      const kolom = bacaKolom(data);
+      const maxRows = hitungMaxRows(kolom);
+      const tanggalInput = parseTanggalInput(data.tanggalInput);
+
+      if (!tanggalInput) {
+        toast.error("Tanggal Input (Batch Date) tidak valid.", { id: toastId });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validasi SEMUA baris dulu sebelum membentuk payload apa pun
+      for (let i = 0; i < maxRows; i++) {
+        const baris = i + 1;
+        const tglMutasi = ambilSel(kolom.tglMutasi, i);
+        const tglPerolehan = ambilSel(kolom.tglPerolehan, i);
+        if (parseTanggalID(tglMutasi) === null) {
+          toast.error(`Baris ${baris}: Tgl Mutasi "${tglMutasi || "-"}" tidak valid (format DD/MM/YYYY).`, { id: toastId });
+          setIsSubmitting(false);
+          return;
         }
-        return new Date(dateStr);
-      };
+        if (parseTanggalID(tglPerolehan) === null) {
+          toast.error(`Baris ${baris}: Tgl Perolehan "${tglPerolehan || "-"}" tidak valid (format DD/MM/YYYY).`, { id: toastId });
+          setIsSubmitting(false);
+          return;
+        }
+        const jumlahRaw = ambilSel(kolom.jml, i);
+        if (!Number.isFinite(bersihkanAngka(jumlahRaw)) || jumlahRaw.trim() === "") {
+          toast.error(`Baris ${baris}: Jumlah tidak valid.`, { id: toastId });
+          setIsSubmitting(false);
+          return;
+        }
+      }
 
       if (initialData) {
         // MODE EDIT TUNGGAL
         const payload = {
-          tanggalInput: new Date(data.tanggalInput),
-          tanggalMutasi: parseDateStr(tglMutasi[0]),
-          nomorRegisterAset: noReg[0] || "-",
-          namaAset: nama[0] || "-",
-          golonganAset: gol[0] || "-",
-          jumlah: Number(jml[0] || 1),
-          tanggalPerolehan: parseDateStr(tglPerolehan[0]),
-          hargaPerolehan: Number(hrg[0] || 0),
-          akmPenyusutan: Number(akm[0] || 0),
-          lokasiAwal: lokAwal[0] || "-",
-          lokasiTujuan: lokTujuan[0] || "-",
-          alasanMutasi: alasan[0] || "-",
+          tanggalInput,
+          tanggalMutasi: parseTanggalID(ambilSel(kolom.tglMutasi, 0))!,
+          nomorRegisterAset: ambilSel(kolom.noReg, 0) || "-",
+          namaAset: ambilSel(kolom.nama, 0) || "-",
+          golonganAset: ambilSel(kolom.gol, 0) || "-",
+          jumlah: bersihkanAngka(ambilSel(kolom.jml, 0)) || 1,
+          tanggalPerolehan: parseTanggalID(ambilSel(kolom.tglPerolehan, 0))!,
+          hargaPerolehan: bersihkanAngka(ambilSel(kolom.hrg, 0)),
+          akmPenyusutan: bersihkanAngka(ambilSel(kolom.akm, 0)),
+          lokasiAwal: ambilSel(kolom.lokAwal, 0) || "-",
+          lokasiTujuan: ambilSel(kolom.lokTujuan, 0) || "-",
+          alasanMutasi: ambilSel(kolom.alasan, 0) || "-",
           operatorName: data.operatorName,
           supervisorName: data.supervisorName || ""
         };
-        await updateMutasiAset(initialData.id, payload as any);
+        const res = await updateMutasiAset(initialData.id, payload as any);
+        if (!res?.success) {
+          toast.error(res?.message || "Gagal mengupdate data mutasi.", { id: toastId });
+          setIsSubmitting(false);
+          return;
+        }
+        toast.success(res.message, { id: toastId });
       } else {
         // MODE BULK INSERT: Siapin array dan kirim sekali jalan
         const payloads = [];
         for (let i = 0; i < maxRows; i++) {
           payloads.push({
-            tanggalInput: new Date(data.tanggalInput),
-            tanggalMutasi: parseDateStr(tglMutasi[i] || tglMutasi[0]),
-            nomorRegisterAset: noReg[i] || noReg[0] || "-",
-            namaAset: nama[i] || nama[0] || "-",
-            golonganAset: gol[i] || gol[0] || "-",
-            jumlah: Number(jml[i] || jml[0] || 1),
-            tanggalPerolehan: parseDateStr(tglPerolehan[i] || tglPerolehan[0]),
-            hargaPerolehan: Number(hrg[i] || hrg[0] || 0),
-            akmPenyusutan: Number(akm[i] || akm[0] || 0),
-            lokasiAwal: lokAwal[i] || lokAwal[0] || "-",
-            lokasiTujuan: lokTujuan[i] || lokTujuan[0] || "-",
-            alasanMutasi: alasan[i] || alasan[0] || "-",
+            tanggalInput,
+            tanggalMutasi: parseTanggalID(ambilSel(kolom.tglMutasi, i))!,
+            nomorRegisterAset: ambilSel(kolom.noReg, i) || "-",
+            namaAset: ambilSel(kolom.nama, i) || "-",
+            golonganAset: ambilSel(kolom.gol, i) || "-",
+            jumlah: bersihkanAngka(ambilSel(kolom.jml, i)) || 1,
+            tanggalPerolehan: parseTanggalID(ambilSel(kolom.tglPerolehan, i))!,
+            hargaPerolehan: bersihkanAngka(ambilSel(kolom.hrg, i)),
+            akmPenyusutan: bersihkanAngka(ambilSel(kolom.akm, i)),
+            lokasiAwal: ambilSel(kolom.lokAwal, i) || "-",
+            lokasiTujuan: ambilSel(kolom.lokTujuan, i) || "-",
+            alasanMutasi: ambilSel(kolom.alasan, i) || "-",
             operatorName: data.operatorName,
             supervisorName: data.supervisorName || ""
           });
         }
-        await createBulkMutasiAset(payloads);
+        const res = await createBulkMutasiAset(payloads);
+        if (!res?.success) {
+          toast.error(res?.message || "Gagal menyimpan data mutasi.", { id: toastId });
+          setIsSubmitting(false);
+          return;
+        }
+        toast.success(res.message, { id: toastId });
       }
 
-      toast.success("Data mutasi berhasil disimpan!", { id: toastId });
       onSuccess();
     } catch (error) {
       toast.error("Gagal menyimpan data mutasi.", { id: toastId });
@@ -281,7 +325,16 @@ export default function FormMutasi({ initialData, onCancel, onSuccess }: any) {
                   {previewRows.map((row, idx) => (
                     <tr key={idx} className="hover:bg-slate-50 border-b border-slate-100 transition-colors">
                       <td className="p-3 font-medium text-slate-400">{idx + 1}</td>
-                      <td className="p-3 font-medium">{row.tanggalMutasi}</td>
+                      <td className="p-3 font-medium">
+                        {row.tanggalMutasiValid ? (
+                          row.tanggalMutasi
+                        ) : (
+                          <span className="inline-flex flex-col bg-rose-50 text-rose-700 px-2 py-1 rounded border border-rose-200">
+                            <span>{row.tanggalMutasi}</span>
+                            <span className="text-[10px] font-normal">Format tanggal salah</span>
+                          </span>
+                        )}
+                      </td>
                       <td className="p-3 font-mono text-slate-500">{row.nomorRegisterAset}</td>
                       <td className="p-3 font-bold">{row.namaAset}</td>
                       <td className="p-3 text-center">{row.jumlah}</td>

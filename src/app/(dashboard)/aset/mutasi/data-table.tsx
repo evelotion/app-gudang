@@ -7,28 +7,14 @@ import { Button } from "@/components/ui/button";
 import { PackageOpen, Pencil, Trash2, Loader2, Edit2, Check, X as XIcon, Search, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet } from "lucide-react";
 import { deleteMutasiAset, deleteBulkMutasiAset, updateMutasiAset } from "@/actions/aset";
 import { toast } from "sonner";
+import { toDDMMYYYY, formatTanggalDisplay, parseTanggalID } from "@/lib/date";
 
 // ==========================================
 // HELPER FORMAT
 // ==========================================
 const formatRupiah = (angka: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
 
-const formatToDDMMYYYY = (dateVal: any) => {
-  if (!dateVal) return "";
-  const d = new Date(dateVal);
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  return `${day}/${month}/${d.getFullYear()}`;
-};
-
-const formatTanggalDisplay = (tanggal: string | Date) => {
-  if (!tanggal) return "-";
-  return new Intl.DateTimeFormat("id-ID", { 
-    day: "numeric", 
-    month: "short", 
-    year: "numeric" 
-  }).format(new Date(tanggal));
-};
+const formatToDDMMYYYY = toDDMMYYYY;
 
 // ==========================================
 // KOMPONEN: CELL INLINE EDITING
@@ -196,21 +182,22 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
   };
 
   const handleInlineSave = async (row: any, field: string, newValue: string) => {
+    let parsedTanggal: Date | null = null;
     if (field === 'tanggalPerolehan' || field === 'tanggalMutasi') {
-      if (!/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/\d{4}$/.test(newValue)) return alert("Format wajib DD/MM/YYYY");
+      parsedTanggal = parseTanggalID(newValue);
+      if (!parsedTanggal) return alert("Format wajib DD/MM/YYYY");
     }
     setSavingCell({ id: row.id, field });
     try {
-      const payload = { ...row, 
+      const payload = { ...row,
         jumlah: Number(row.jumlah), hargaPerolehan: Number(row.hargaPerolehan), akmPenyusutan: Number(row.akmPenyusutan),
         tanggalInput: new Date(row.tanggalInput), tanggalMutasi: new Date(row.tanggalMutasi), tanggalPerolehan: new Date(row.tanggalPerolehan),
       };
-      
+
       if (['jumlah', 'hargaPerolehan', 'akmPenyusutan'].includes(field)) {
         payload[field] = Number(String(newValue).replace(/\D/g, ''));
       } else if (field === 'tanggalPerolehan' || field === 'tanggalMutasi') {
-        const [d, m, y] = newValue.split('/');
-        payload[field] = new Date(`${y}-${m}-${d}T00:00:00Z`);
+        payload[field] = parsedTanggal;
       } else {
         payload[field] = newValue;
       }

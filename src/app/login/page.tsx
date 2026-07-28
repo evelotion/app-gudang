@@ -39,7 +39,7 @@ export default function LoginPage() {
               <Package className="w-6 h-6 text-indigo-600" />
             </div>
             <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">
-              Gudang<span className="text-indigo-600">Sync</span>
+              Aset<span className="text-indigo-600">Ku</span>
             </h1>
             <p className="text-slate-500 text-sm font-medium mt-1">
               Silakan login untuk melanjutkan

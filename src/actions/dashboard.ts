@@ -4,55 +4,60 @@ import { prisma } from "@/lib/prisma"
 
 export async function getDashboardStats() {
   try {
-    const totalBarang = await prisma.barang.count();
+    const [totalRegistrasi, totalHapusBuku, totalMutasi] = await Promise.all([
+      prisma.registrasiAset.count(),
+      prisma.hapusBukuAset.count(),
+      prisma.mutasiAset.count(),
+    ]);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const [pendingRegistrasi, pendingHapusBuku, pendingMutasi] = await Promise.all([
+      prisma.registrasiAset.count({ where: { status: "PENDING" } }),
+      prisma.hapusBukuAset.count({ where: { status: "PENDING" } }),
+      prisma.mutasiAset.count({ where: { status: "PENDING" } }),
+    ]);
 
-    const trxKeluarHariIni = await prisma.requisitionHeader.count({
-      where: { createdAt: { gte: today } }
-    });
-    
-    const trxMasukHariIni = await prisma.inboundHeader.count({
-      where: { createdAt: { gte: today } }
-    });
+    const [recentRegistrasi, recentHapusBuku, recentMutasi] = await Promise.all([
+      prisma.registrasiAset.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, namaAset: true, nomorRegisterAset: true, status: true, createdAt: true },
+      }),
+      prisma.hapusBukuAset.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, namaAset: true, nomorRegisterAset: true, status: true, createdAt: true },
+      }),
+      prisma.mutasiAset.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, namaAset: true, nomorRegisterAset: true, status: true, createdAt: true },
+      }),
+    ]);
 
-    const stokMenipis = await prisma.barang.count({
-      where: { stok: { lt: 10 } }
-    });
+    const recentActivity = [
+      ...recentRegistrasi.map((item) => ({ ...item, jenis: "Registrasi Baru" as const, path: "/aset/registrasi-baru" }),),
+      ...recentHapusBuku.map((item) => ({ ...item, jenis: "Hapus Buku" as const, path: "/aset/hapus-buku" }),),
+      ...recentMutasi.map((item) => ({ ...item, jenis: "Mutasi Aset" as const, path: "/aset/mutasi" }),),
+    ]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, 8);
 
-    const grafikStok = await prisma.barang.findMany({
-      orderBy: { stok: 'asc' },
-      take: 5,
-      select: { nama_barang: true, stok: true }
-    });
-
-    // --- FITUR BARU: Ambil data status PACKING ---
-    const packingCount = await prisma.requisitionHeader.count({
-      where: { status: "PACKING" }
-    });
-
-    const packingList = await prisma.requisitionHeader.findMany({
-      where: { status: "PACKING" },
-      include: { 
-        items: { include: { barang: { select: { nama_barang: true } } } } 
+    return {
+      success: true,
+      data: {
+        totalRegistrasi,
+        totalHapusBuku,
+        totalMutasi,
+        totalPending: pendingRegistrasi + pendingHapusBuku + pendingMutasi,
+        pendingRegistrasi,
+        pendingHapusBuku,
+        pendingMutasi,
+        recentActivity,
       },
-      orderBy: { createdAt: 'asc' } // Yang paling lama di-packing muncul duluan
-    });
-
-    return { 
-      success: true, 
-      data: { 
-        totalBarang, 
-        trxHariIni: trxKeluarHariIni + trxMasukHariIni, 
-        stokMenipis,
-        grafikStok,
-        packingCount, // Dikirim ke frontend
-        packingList   // Dikirim ke frontend
-      },
-      error: undefined
+      error: undefined,
     };
   } catch (error) {
+    console.error("Dashboard Stats Error:", error);
     return { success: false, data: null, error: "Gagal mengambil data dashboard" };
   }
 }

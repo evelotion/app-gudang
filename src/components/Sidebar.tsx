@@ -47,7 +47,7 @@ export default function Sidebar({ onCloseMobile }: { onCloseMobile?: () => void 
           </div>
           <div>
             <h1 className="font-black text-base tracking-tight text-slate-900 leading-none">
-              Aset<span className="text-indigo-600">Ku</span>
+              Log<span className="text-indigo-600">Sync</span>
             </h1>
             <p className="text-[9px] font-bold tracking-wider text-slate-400 uppercase mt-1">Bank Syariah</p>
           </div>

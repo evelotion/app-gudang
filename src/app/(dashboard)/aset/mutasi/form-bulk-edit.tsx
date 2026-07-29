@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X, Loader2, Save, ListChecks } from "lucide-react";
 import { updateBulkMutasiAset } from "@/actions/aset";
 import { toast } from "sonner";
+import Modal from "@/components/Modal";
 
 export default function FormBulkEditMutasi({ selectedData, onSuccess, onCancel }: { selectedData: any[], onSuccess: () => void, onCancel: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,6 +40,7 @@ export default function FormBulkEditMutasi({ selectedData, onSuccess, onCancel }
   };
 
   return (
+    <Modal>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-hidden animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-7xl rounded-2xl shadow-2xl border border-slate-200 flex flex-col max-h-[95vh]">
         
@@ -114,5 +116,6 @@ export default function FormBulkEditMutasi({ selectedData, onSuccess, onCancel }
         </div>
       </div>
     </div>
+    </Modal>
   );
 }

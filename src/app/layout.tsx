@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AsetKu | Manajemen Aset",
+  title: "LogSync | Manajemen Aset",
   description: "Aplikasi manajemen registrasi, hapus buku, dan mutasi aset internal.",
 };
 

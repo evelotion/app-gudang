@@ -5,6 +5,7 @@ import FormHapusBuku from "./form-hapus-buku";
 import DataTableHapusBuku from "./data-table";
 import { FileMinus, Printer } from "lucide-react"; 
 import { getHapusBukuAset } from "@/actions/aset";
+import { getSession } from "@/actions/auth";
 import { PageHeader } from "@/components/PageHeader"; 
 import { Card, CardContent } from "@/components/ui/card"; 
 
@@ -13,7 +14,7 @@ import autoTable from "jspdf-autotable";
 
 const formatRupiah = (angka: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
 
-const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
+const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[], operatorLogin: string) => {
   if (!dataHarian || dataHarian.length === 0) return alert("Tidak ada data hapus buku untuk tanggal ini.");
 
   try {
@@ -70,9 +71,9 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
     doc.text("Operator", 200, finalY, { align: "center" });
     doc.setFont("helvetica", "normal");
     
-    // Ambil nama dari data pertama sebagai perwakilan
+    // Nama supervisi diambil dari data (dipilih manual saat input)
     const supervisi = dataHarian[0]?.supervisorName || "Novianti Siswandi";
-    const operator = dataHarian[0]?.operatorName || "Indra Dwi Ananda";
+    const operator = operatorLogin;
 
     doc.text(supervisi, 100, finalY + 20, { align: "center" });
     doc.text(operator, 200, finalY + 20, { align: "center" });
@@ -127,7 +128,13 @@ export default function HapusBukuAsetPage() {
                   <select value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent border-none text-sm font-semibold text-slate-700 py-1.5 pl-3 pr-8 outline-none cursor-pointer">
                     {Object.keys(groupedData).sort().reverse().map(d => <option key={d} value={d}>{new Date(d).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' })}</option>)}
                   </select>
-                  <button onClick={() => handlePrintPDF(selectedDate, currentData)} className="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-700 px-4 py-2 rounded-lg text-sm font-bold transition-all">
+                  <button
+                    onClick={async () => {
+                      const session = await getSession();
+                      handlePrintPDF(selectedDate, currentData, session?.nama || "-");
+                    }}
+                    className="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-700 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                  >
                     <Printer className="w-4 h-4" /> Cetak PDF
                   </button>
                 </div>

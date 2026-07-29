@@ -5,6 +5,7 @@ import FormRegistrasi from "./form-registrasi";
 import DataTableRegistrasi from "./data-table";
 import { FilePlus, Printer } from "lucide-react"; 
 import { getRegistrasiAset } from "@/actions/aset";
+import { getSession } from "@/actions/auth";
 import { PageHeader } from "@/components/PageHeader"; // Import PageHeader
 import { Card, CardContent } from "@/components/ui/card"; // Import Card premium
 
@@ -15,7 +16,7 @@ const formatRupiah = (angka: number) => {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
 };
 
-const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
+const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[], inputerName: string) => {
   if (!dataHarian || dataHarian.length === 0) {
     alert("Gagal print: Tidak ada data aset untuk tanggal ini.");
     return;
@@ -74,7 +75,7 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
     
     doc.setFont("helvetica", "normal");
     doc.text("Novianti Siswandi", 100, finalY + 20, { align: "center" });
-    doc.text("Indra Dwi Ananda", 200, finalY + 20, { align: "center" });
+    doc.text(inputerName, 200, finalY + 20, { align: "center" });
     
     doc.text(`Tanggal : ${tglCetak}`, 100, finalY + 25, { align: "center" });
     doc.text(`Tanggal : ${tglCetak}`, 200, finalY + 25, { align: "center" });
@@ -176,8 +177,11 @@ export default function RegistrasiAsetPage() {
                     ))}
                   </select>
                   
-                  <button 
-                    onClick={() => handlePrintPDF(selectedDate, currentData)}
+                  <button
+                    onClick={async () => {
+                      const session = await getSession();
+                      handlePrintPDF(selectedDate, currentData, session?.nama || "-");
+                    }}
                     className="flex items-center gap-2 bg-rose-50 hover:bg-rose-100 text-rose-700 px-4 py-2 rounded-lg text-sm font-bold transition-all"
                   >
                     <Printer className="w-4 h-4" /> Cetak PDF

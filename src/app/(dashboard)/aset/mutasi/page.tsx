@@ -5,7 +5,8 @@ import FormMutasi from "./form-mutasi";
 import DataTableMutasi from "./data-table";
 // 1. TAMBAHIN IMPORT FileSpreadsheet buat icon excel
 import { ArrowRightLeft, Printer, FileSpreadsheet } from "lucide-react"; 
-import { getMutasiAset } from "@/actions/aset"; 
+import { getMutasiAset } from "@/actions/aset";
+import { getSession } from "@/actions/auth";
 import { PageHeader } from "@/components/PageHeader"; 
 import { Card, CardContent } from "@/components/ui/card"; 
 
@@ -16,7 +17,7 @@ import { exportMutasiToJournal } from "@/lib/exportJournal";
 
 const formatRupiah = (angka: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
 
-const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
+const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[], operatorLogin: string) => {
   if (!dataHarian || dataHarian.length === 0) return alert("Tidak ada data mutasi untuk tanggal ini.");
 
   try {
@@ -74,7 +75,7 @@ const handlePrintPDF = (tanggalTerpilih: string, dataHarian: any[]) => {
     doc.setFont("helvetica", "normal");
     
     const supervisi = dataHarian[0]?.supervisorName || "Novianti Siswandi";
-    const operator = dataHarian[0]?.operatorName || "Indra Dwi Ananda";
+    const operator = operatorLogin;
 
     doc.text(supervisi, 100, finalY + 20, { align: "center" });
     doc.text(operator, 200, finalY + 20, { align: "center" });
@@ -133,7 +134,13 @@ export default function MutasiAsetPage() {
                   </select>
                   
                   {/* TOMBOL CETAK PDF (EXISTING) */}
-                  <button onClick={() => handlePrintPDF(selectedDate, currentData)} className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg text-sm font-bold transition-all">
+                  <button
+                    onClick={async () => {
+                      const session = await getSession();
+                      handlePrintPDF(selectedDate, currentData, session?.nama || "-");
+                    }}
+                    className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                  >
                     <Printer className="w-4 h-4" /> Cetak PDF
                   </button>
 

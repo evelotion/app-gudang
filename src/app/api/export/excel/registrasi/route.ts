@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import ExcelJS from 'exceljs';
+import { requireSession } from '@/actions/auth';
 
 export async function GET(request: Request) {
+  try {
+    await requireSession();
+  } catch {
+    return new Response(JSON.stringify({ message: "Unauthorized" }), {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   try {
     // 1. Ambil data dari database
     const dataAset = await prisma.registrasiAset.findMany({

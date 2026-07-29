@@ -3,11 +3,16 @@
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { 
-  registrasiAsetSchema, 
-  hapusBukuAsetSchema, 
-  mutasiAsetSchema 
+import { requireSession } from "@/actions/auth";
+import {
+  registrasiAsetSchema,
+  hapusBukuAsetSchema,
+  mutasiAsetSchema
 } from "@/lib/validations";
+
+function isUnauthorized(error: unknown) {
+  return error instanceof Error && error.message === "UNAUTHORIZED";
+}
 
 // ==========================================
 // SERVER ACTIONS REGISTRASI
@@ -15,23 +20,30 @@ import {
 
 export async function createRegistrasiAset(data: z.infer<typeof registrasiAsetSchema>) {
   try {
+    await requireSession();
     const parsedData = registrasiAsetSchema.parse(data);
-    await prisma.registrasiAset.create({ data: { ...parsedData } });
+    await prisma.registrasiAset.create({ data: { ...parsedData, status: "PENDING" } });
     revalidatePath("/aset/registrasi-baru");
     return { success: true, message: "Data registrasi aset berhasil disimpan!" };
-  } catch (error) { 
-    return { success: false, message: "Gagal menyimpan data." }; 
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    return { success: false, message: "Gagal menyimpan data." };
   }
 }
 
 export async function createBulkRegistrasiAset(dataArray: any[]) {
   try {
-    await prisma.registrasiAset.createMany({
-      data: dataArray,
-    });
+    const session = await requireSession();
+    const parsed = z.array(registrasiAsetSchema).safeParse(dataArray);
+    if (!parsed.success) {
+      return { success: false, message: "Data tidak valid.", errors: parsed.error.issues };
+    }
+    const data = parsed.data.map((item) => ({ ...item, inputerName: session.nama, status: "PENDING" }));
+    await prisma.registrasiAset.createMany({ data });
     revalidatePath("/aset/registrasi-baru");
-    return { success: true, message: `${dataArray.length} data registrasi aset berhasil disimpan!` };
+    return { success: true, message: `${data.length} data registrasi aset berhasil disimpan!` };
   } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
     console.error("Bulk Insert Registrasi Error:", error);
     return { success: false, message: "Gagal menyimpan data massal." };
   }
@@ -39,17 +51,20 @@ export async function createBulkRegistrasiAset(dataArray: any[]) {
 
 export async function updateRegistrasiAset(id: string, data: z.infer<typeof registrasiAsetSchema>) {
   try {
+    await requireSession();
     const parsedData = registrasiAsetSchema.parse(data);
     await prisma.registrasiAset.update({ where: { id }, data: { ...parsedData } });
     revalidatePath("/aset/registrasi-baru");
     return { success: true, message: "Data registrasi aset berhasil diupdate!" };
-  } catch (error) { 
-    return { success: false, message: "Gagal mengupdate data." }; 
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    return { success: false, message: "Gagal mengupdate data." };
   }
 }
 
 export async function updateBulkRegistrasiAset(dataArray: any[]) {
   try {
+    await requireSession();
     const transactions = dataArray.map((item) =>
       prisma.registrasiAset.update({
         where: { id: item.id },
@@ -72,6 +87,7 @@ export async function updateBulkRegistrasiAset(dataArray: any[]) {
     revalidatePath("/aset/registrasi-baru");
     return { success: true, message: `${dataArray.length} data berhasil diupdate massal!` };
   } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
     console.error("Bulk Update Error:", error);
     return { success: false, message: "Gagal melakukan update massal." };
   }
@@ -79,21 +95,25 @@ export async function updateBulkRegistrasiAset(dataArray: any[]) {
 
 export async function deleteRegistrasiAset(id: string) {
   try {
+    await requireSession();
     await prisma.registrasiAset.delete({ where: { id } });
     revalidatePath("/aset/registrasi-baru");
     return { success: true, message: "Data registrasi aset berhasil dihapus!" };
-  } catch (error) { 
-    return { success: false, message: "Gagal menghapus data." }; 
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    return { success: false, message: "Gagal menghapus data." };
   }
 }
 
 export async function deleteBulkRegistrasiAset(ids: string[]) {
   try {
+    await requireSession();
     await prisma.registrasiAset.deleteMany({ where: { id: { in: ids } } });
     revalidatePath("/aset/registrasi-baru");
     return { success: true, message: `${ids.length} data berhasil dihapus!` };
-  } catch (error) { 
-    return { success: false, message: "Gagal menghapus data massal." }; 
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    return { success: false, message: "Gagal menghapus data massal." };
   }
 }
 
@@ -111,23 +131,30 @@ export async function getRegistrasiAset() {
 
 export async function createHapusBukuAset(data: z.infer<typeof hapusBukuAsetSchema>) {
   try {
+    const session = await requireSession();
     const parsedData = hapusBukuAsetSchema.parse(data);
-    await prisma.hapusBukuAset.create({ data: { ...parsedData }});
+    await prisma.hapusBukuAset.create({ data: { ...parsedData, operatorName: session.nama, status: "PENDING" }});
     revalidatePath("/aset/hapus-buku");
     return { success: true, message: "Data hapus buku berhasil disimpan!" };
-  } catch (error) { 
-    return { success: false, message: "Gagal menyimpan data hapus buku." }; 
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    return { success: false, message: "Gagal menyimpan data hapus buku." };
   }
 }
 
 export async function createBulkHapusBukuAset(dataArray: any[]) {
   try {
-    await prisma.hapusBukuAset.createMany({
-      data: dataArray,
-    });
+    const session = await requireSession();
+    const parsed = z.array(hapusBukuAsetSchema).safeParse(dataArray);
+    if (!parsed.success) {
+      return { success: false, message: "Data tidak valid.", errors: parsed.error.issues };
+    }
+    const data = parsed.data.map((item) => ({ ...item, operatorName: session.nama, status: "PENDING" }));
+    await prisma.hapusBukuAset.createMany({ data });
     revalidatePath("/aset/hapus-buku");
-    return { success: true, message: `${dataArray.length} data hapus buku berhasil disimpan!` };
+    return { success: true, message: `${data.length} data hapus buku berhasil disimpan!` };
   } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
     console.error("Bulk Insert Hapus Buku Error:", error);
     return { success: false, message: "Gagal menyimpan data massal hapus buku." };
   }
@@ -135,18 +162,21 @@ export async function createBulkHapusBukuAset(dataArray: any[]) {
 
 export async function updateHapusBukuAset(id: string, data: z.infer<typeof hapusBukuAsetSchema>) {
   try {
+    await requireSession();
     const parsedData = hapusBukuAsetSchema.parse(data);
     await prisma.hapusBukuAset.update({ where: { id }, data: { ...parsedData }});
     revalidatePath("/aset/hapus-buku");
     return { success: true, message: "Data hapus buku berhasil diupdate!" };
-  } catch (error) { 
-    return { success: false, message: "Gagal mengupdate data hapus buku." }; 
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    return { success: false, message: "Gagal mengupdate data hapus buku." };
   }
 }
 
 // FUNGSI BARU: Untuk Update Massal (Bulk Edit) Hapus Buku
 export async function updateBulkHapusBukuAset(dataArray: any[]) {
   try {
+    await requireSession();
     const transactions = dataArray.map((item) =>
       prisma.hapusBukuAset.update({
         where: { id: item.id },
@@ -169,6 +199,7 @@ export async function updateBulkHapusBukuAset(dataArray: any[]) {
     revalidatePath("/aset/hapus-buku");
     return { success: true, message: `${dataArray.length} data hapus buku berhasil diupdate!` };
   } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
     console.error("Bulk Update Hapus Buku Error:", error);
     return { success: false, message: "Gagal melakukan update massal hapus buku." };
   }
@@ -176,21 +207,25 @@ export async function updateBulkHapusBukuAset(dataArray: any[]) {
 
 export async function deleteHapusBukuAset(id: string) {
   try {
+    await requireSession();
     await prisma.hapusBukuAset.delete({ where: { id }});
     revalidatePath("/aset/hapus-buku");
     return { success: true, message: "Data hapus buku berhasil dihapus!" };
-  } catch (error) { 
-    return { success: false, message: "Gagal menghapus data hapus buku." }; 
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    return { success: false, message: "Gagal menghapus data hapus buku." };
   }
 }
 
 export async function deleteBulkHapusBukuAset(ids: string[]) {
   try {
+    await requireSession();
     await prisma.hapusBukuAset.deleteMany({ where: { id: { in: ids } } });
     revalidatePath("/aset/hapus-buku");
     return { success: true, message: `${ids.length} data berhasil dihapus!` };
-  } catch (error) { 
-    return { success: false, message: "Gagal menghapus data massal." }; 
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    return { success: false, message: "Gagal menghapus data massal." };
   }
 }
 
@@ -208,50 +243,42 @@ export async function getHapusBukuAset() {
 
 export async function createMutasiAset(data: z.infer<typeof mutasiAsetSchema>) {
   try {
+    await requireSession();
     const parsedData = mutasiAsetSchema.parse(data);
-    await prisma.mutasiAset.create({ data: { ...parsedData } });
+    await prisma.mutasiAset.create({ data: { ...parsedData, status: "PENDING" } });
     revalidatePath("/aset/mutasi");
     return { success: true, message: "Data mutasi aset berhasil disimpan!" };
   } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
     return { success: false, message: "Gagal menyimpan data mutasi." };
   }
 }
 
 export async function createBulkMutasiAset(dataArray: any[]) {
   try {
+    const session = await requireSession();
+
     if (!Array.isArray(dataArray) || dataArray.length === 0) {
       return { success: false, message: "Tidak ada data yang dikirim." };
     }
 
-    for (let i = 0; i < dataArray.length; i++) {
-      const row = dataArray[i];
-      const cekTanggal: [string, unknown][] = [
-        ["Tanggal Input", row.tanggalInput],
-        ["Tgl Mutasi", row.tanggalMutasi],
-        ["Tgl Perolehan", row.tanggalPerolehan],
-      ];
-      for (const [label, val] of cekTanggal) {
-        const d = val instanceof Date ? val : new Date(val as string);
-        if (Number.isNaN(d.getTime())) {
-          return { success: false, message: `Baris ${i + 1}: ${label} tidak valid.` };
-        }
-      }
-      const cekAngka: [string, unknown][] = [
-        ["Jumlah", row.jumlah],
-        ["Harga Perolehan", row.hargaPerolehan],
-        ["Akm. Penyusutan", row.akmPenyusutan],
-      ];
-      for (const [label, val] of cekAngka) {
-        if (!Number.isFinite(Number(val))) {
-          return { success: false, message: `Baris ${i + 1}: ${label} bukan angka yang valid.` };
-        }
-      }
+    const parsed = z.array(mutasiAsetSchema).safeParse(dataArray);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      const baris = typeof first.path[0] === "number" ? first.path[0] + 1 : "?";
+      return {
+        success: false,
+        message: `Baris ${baris}: ${first.message}`,
+        errors: parsed.error.issues,
+      };
     }
 
-    const hasil = await prisma.mutasiAset.createMany({ data: dataArray });
+    const data = parsed.data.map((item) => ({ ...item, operatorName: session.nama, status: "PENDING" }));
+    const hasil = await prisma.mutasiAset.createMany({ data });
     revalidatePath("/aset/mutasi");
     return { success: true, message: `${hasil.count} data mutasi aset berhasil disimpan!` };
   } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
     console.error("Bulk Insert Mutasi Error:", error);
     const detail = error instanceof Error ? error.message.split("\n").pop()?.trim() : "";
     return {
@@ -263,11 +290,13 @@ export async function createBulkMutasiAset(dataArray: any[]) {
 
 export async function updateMutasiAset(id: string, data: z.infer<typeof mutasiAsetSchema>) {
   try {
+    await requireSession();
     const parsedData = mutasiAsetSchema.parse(data);
     await prisma.mutasiAset.update({ where: { id }, data: { ...parsedData } });
     revalidatePath("/aset/mutasi");
     return { success: true, message: "Data mutasi aset berhasil diupdate!" };
   } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
     return { success: false, message: "Gagal mengupdate data mutasi." };
   }
 }
@@ -275,6 +304,7 @@ export async function updateMutasiAset(id: string, data: z.infer<typeof mutasiAs
 // FUNGSI BARU: Untuk Update Massal (Bulk Edit) Mutasi
 export async function updateBulkMutasiAset(dataArray: any[]) {
   try {
+    await requireSession();
     const transactions = dataArray.map((item) =>
       prisma.mutasiAset.update({
         where: { id: item.id },
@@ -297,6 +327,7 @@ export async function updateBulkMutasiAset(dataArray: any[]) {
     revalidatePath("/aset/mutasi");
     return { success: true, message: `${dataArray.length} data mutasi berhasil diupdate!` };
   } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
     console.error("Bulk Update Mutasi Error:", error);
     return { success: false, message: "Gagal melakukan update massal mutasi." };
   }
@@ -304,21 +335,25 @@ export async function updateBulkMutasiAset(dataArray: any[]) {
 
 export async function deleteMutasiAset(id: string) {
   try {
+    await requireSession();
     await prisma.mutasiAset.delete({ where: { id } });
     revalidatePath("/aset/mutasi");
     return { success: true, message: "Data mutasi aset berhasil dihapus!" };
   } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
     return { success: false, message: "Gagal menghapus data mutasi." };
   }
 }
 
 export async function deleteBulkMutasiAset(ids: string[]) {
   try {
+    await requireSession();
     await prisma.mutasiAset.deleteMany({ where: { id: { in: ids } } });
     revalidatePath("/aset/mutasi");
     return { success: true, message: `${ids.length} data berhasil dihapus!` };
-  } catch (error) { 
-    return { success: false, message: "Gagal menghapus data massal mutasi." }; 
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    return { success: false, message: "Gagal menghapus data massal mutasi." };
   }
 }
 

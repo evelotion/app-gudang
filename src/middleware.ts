@@ -25,20 +25,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
-  // 3. RBAC dengan JWT
+  // 3. Verifikasi token (tidak ada pembatasan RBAC per route saat ini —
+  // semua route yang ada (/, /aset/**) boleh diakses ADMIN maupun STAF)
   if (sessionCookie) {
     try {
-      // Verifikasi token
-      const { payload } = await jwtVerify(sessionCookie, getSecretKey());
-      
-      // SEMENTARA DIMATIKAN BUAT DEVELOPMENT BIAR STAF BISA BUKA SEMUA TAB
-      /*
-      const isStaf = payload.role !== "ADMIN";
-      if (isStaf && (pathname.startsWith('/master-barang') || pathname.startsWith('/laporan'))) {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
-      */
-
+      await jwtVerify(sessionCookie, getSecretKey());
     } catch (e) {
       // Token kedaluwarsa atau tidak valid
       const response = NextResponse.redirect(new URL('/login', request.url));

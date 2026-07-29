@@ -70,7 +70,7 @@ export async function getSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get("gudang_session")?.value;
   if (!token) return null;
-  
+
   try {
     // Panggil getSecretKey() di sini
     const { payload } = await jwtVerify(token, getSecretKey());
@@ -81,6 +81,14 @@ export async function getSession() {
       role: string;
     };
   } catch (error) {
-    return null; 
+    return null;
   }
+}
+
+export async function requireSession() {
+  const session = await getSession();
+  if (!session) {
+    throw new Error("UNAUTHORIZED");
+  }
+  return session;
 }

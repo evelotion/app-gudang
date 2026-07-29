@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Loader2, FolderMinus, Edit2, Check, X as XIcon, Search, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet } from "lucide-react";
 import { deleteHapusBukuAset, deleteBulkHapusBukuAset, updateHapusBukuAset } from "@/actions/aset";
 import { toast } from "sonner";
+import Modal from "@/components/Modal";
 
 // ==========================================
 // HELPER FORMATTERS
@@ -436,6 +437,7 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
 
       {/* RENDER MODAL EXPORT DENGAN FILTER TANGGAL */}
       {showExportModal && (
+        <Modal>
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white/95 backdrop-blur-md w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-6 flex flex-col gap-4">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -446,7 +448,7 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
                 <XIcon className="w-5 h-5"/>
               </button>
             </div>
-            
+
             <div className="flex gap-4 mt-2">
               <div className="w-full">
                 <label className="text-xs font-semibold text-slate-600 mb-1 block">Dari Tanggal</label>
@@ -468,6 +470,7 @@ export default function DataTableHapusBuku({ data, onEdit, onRefresh }: { data: 
             </div>
           </div>
         </div>
+        </Modal>
       )}
     </div>
   );

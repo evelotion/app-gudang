@@ -209,6 +209,11 @@ export function cabangCodeForInitial(initial: string): string | null {
   return CABANG_INITIAL_MAP[initial.toUpperCase()] ?? null;
 }
 
+/** Seluruh initial di tabel 84 cabang. Dipakai skrip B.1 (generate-lokasi-master-suggestions). */
+export function allKnownCabangInitials(): string[] {
+  return Object.keys(CABANG_INITIAL_MAP);
+}
+
 // ==========================================
 // RESOLUSI LOKASI (normalisasi-lokasi.md bagian 2)
 // ==========================================

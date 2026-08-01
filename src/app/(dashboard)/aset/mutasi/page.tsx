@@ -5,15 +5,26 @@ import FormMutasi from "./form-mutasi";
 import DataTableMutasi from "./data-table";
 // 1. TAMBAHIN IMPORT FileSpreadsheet buat icon excel
 import { ArrowRightLeft, Printer, FileSpreadsheet } from "lucide-react"; 
-import { getMutasiAset } from "@/actions/aset";
+import { getMutasiAset, exportJurnalMutasi } from "@/actions/aset";
 import { getSession } from "@/actions/auth";
-import { PageHeader } from "@/components/PageHeader"; 
-import { Card, CardContent } from "@/components/ui/card"; 
+import { PageHeader } from "@/components/PageHeader";
+import { Card, CardContent } from "@/components/ui/card";
 
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-// 2. TAMBAHIN IMPORT engine export jurnal yang udah kita bikin di Step 2
-import { exportMutasiToJournal } from "@/lib/exportJournal"; 
+
+function downloadBase64File(base64: string, fileName: string) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const blob = new Blob([bytes], { type: "application/vnd.ms-excel" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 const formatRupiah = (angka: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(angka);
 
@@ -101,7 +112,7 @@ export default function MutasiAsetPage() {
     try {
       const rawData = await getMutasiAset();
       const grouped = (rawData || []).reduce((acc: any, item: any) => {
-        const dateKey = item.tanggalInput.toISOString().split('T')[0];
+        const dateKey = item.tanggalMutasi.toISOString().split('T')[0];
         if (!acc[dateKey]) acc[dateKey] = [];
         acc[dateKey].push(item);
         return acc;
@@ -144,20 +155,23 @@ export default function MutasiAsetPage() {
                     <Printer className="w-4 h-4" /> Cetak PDF
                   </button>
 
-                  {/* 3. TOMBOL EXPORT JURNAL (BARU) */}
-                  <button 
+                  {/* TOMBOL EXPORT JURNAL — hanya kirim tanggal, data di-query di server */}
+                  <button
                     onClick={async () => {
-                      if (!currentData || currentData.length === 0) {
+                      if (!selectedDate) {
                         return alert("Tidak ada data mutasi untuk diexport.");
                       }
                       try {
-                        // Memanggil fungsi eksekusi excel dengan data di tanggal yang terpilih
-                        await exportMutasiToJournal(currentData);
+                        const result = await exportJurnalMutasi(selectedDate);
+                        if (!result.success || !result.base64 || !result.fileName) {
+                          return alert(result.message || "Gagal export jurnal.");
+                        }
+                        downloadBase64File(result.base64, result.fileName);
                       } catch (error) {
                         console.error("Gagal export jurnal:", error);
                         alert("Terjadi kesalahan saat export data jurnal.");
                       }
-                    }} 
+                    }}
                     className="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-bold transition-all"
                   >
                     <FileSpreadsheet className="w-4 h-4" /> Export Jurnal

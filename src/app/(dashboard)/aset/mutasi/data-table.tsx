@@ -8,6 +8,7 @@ import { PackageOpen, Pencil, Trash2, Loader2, Edit2, Check, X as XIcon, Search,
 import { deleteMutasiAset, deleteBulkMutasiAset, updateMutasiAset } from "@/actions/aset";
 import { toast } from "sonner";
 import { toDDMMYYYY, formatTanggalDisplay, parseTanggalID } from "@/lib/date";
+import Modal from "@/components/Modal";
 
 // ==========================================
 // HELPER FORMAT
@@ -375,6 +376,7 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
 
       {/* RENDER MODAL EXPORT DENGAN FILTER TANGGAL */}
       {showExportModal && (
+        <Modal>
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white/95 backdrop-blur-md w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-6 flex flex-col gap-4">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
@@ -385,7 +387,7 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
                 <XIcon className="w-5 h-5"/>
               </button>
             </div>
-            
+
             <div className="flex gap-4 mt-2">
               <div className="w-full">
                 <label className="text-xs font-semibold text-slate-600 mb-1 block">Dari Tanggal</label>
@@ -407,6 +409,7 @@ export default function DataTableMutasi({ data, onEdit, onRefresh }: { data: any
             </div>
           </div>
         </div>
+        </Modal>
       )}
 
     </div>

@@ -12,11 +12,12 @@
 import * as XLSX from "xlsx";
 import {
   lookupGolongan,
-  lookupCabang,
   splitLokasi,
+  resolveLokasi,
   NON_INVENTARIS_KANONIK,
   type GolonganEntry,
-  type CabangInfo,
+  type LokasiInfo,
+  type LokasiRefEntry,
 } from "./mappings";
 import { buildKeterangan, MAX_KETERANGAN } from "./keteranganJurnal";
 
@@ -93,15 +94,19 @@ export class ExportJurnalError extends Error {
 interface ResolvedRow {
   row: MutasiAsetRow;
   golongan: GolonganEntry;
-  cabangAwal: CabangInfo;
-  cabangTujuan: CabangInfo;
+  cabangAwal: LokasiInfo;
+  cabangTujuan: LokasiInfo;
 }
 
 function validateLokasi(
   lokasi: string,
   nomorRegisterAset: string,
+  lokasiRefMap: Map<string, LokasiRefEntry>,
   issues: ValidationIssue[]
-): CabangInfo | null {
+): LokasiInfo | null {
+  const info = resolveLokasi(lokasi, lokasiRefMap);
+  if (info) return info;
+
   if (!splitLokasi(lokasi)) {
     issues.push({
       type: "lokasi_pola",
@@ -111,20 +116,20 @@ function validateLokasi(
     });
     return null;
   }
-  const info = lookupCabang(lokasi);
-  if (!info) {
-    issues.push({
-      type: "lokasi_tidak_dikenal",
-      value: lokasi,
-      message: `Lokasi tidak dikenal: "${lokasi}"`,
-      nomorRegisterAset,
-    });
-    return null;
-  }
-  return info;
+
+  issues.push({
+    type: "lokasi_tidak_dikenal",
+    value: lokasi,
+    message: `Lokasi tidak dikenal: "${lokasi}"`,
+    nomorRegisterAset,
+  });
+  return null;
 }
 
-function validateAndResolve(rows: MutasiAsetRow[]): ResolvedRow[] {
+function validateAndResolve(
+  rows: MutasiAsetRow[],
+  lokasiRefMap: Map<string, LokasiRefEntry>
+): ResolvedRow[] {
   const issues: ValidationIssue[] = [];
   const resolved: ResolvedRow[] = [];
 
@@ -149,8 +154,8 @@ function validateAndResolve(rows: MutasiAsetRow[]): ResolvedRow[] {
       }
     }
 
-    const cabangAwal = validateLokasi(row.lokasiAwal, row.nomorRegisterAset, issues);
-    const cabangTujuan = validateLokasi(row.lokasiTujuan, row.nomorRegisterAset, issues);
+    const cabangAwal = validateLokasi(row.lokasiAwal, row.nomorRegisterAset, lokasiRefMap, issues);
+    const cabangTujuan = validateLokasi(row.lokasiTujuan, row.nomorRegisterAset, lokasiRefMap, issues);
 
     if (golongan && cabangAwal && cabangTujuan) {
       resolved.push({ row, golongan, cabangAwal, cabangTujuan });
@@ -172,8 +177,8 @@ interface Group {
   golongan: GolonganEntry;
   lokasiAwal: string;
   lokasiTujuan: string;
-  cabangAwal: CabangInfo;
-  cabangTujuan: CabangInfo;
+  cabangAwal: LokasiInfo;
+  cabangTujuan: LokasiInfo;
   totalHarga: number;
   totalAkm: number;
   totalJumlah: number;
@@ -492,8 +497,8 @@ function buildLampiranSheet(groups: NumberedGroup[]): XLSX.WorkSheet {
         toExcelSerial(item.tanggalPerolehan),
         Number(item.hargaPerolehan),
         Number(item.akmPenyusutan),
-        g.lokasiAwal,
-        g.lokasiTujuan,
+        g.cabangAwal.label,
+        g.cabangTujuan.label,
         item.alasanMutasi,
         item.operatorName,
         g.kodeRef,
@@ -576,6 +581,13 @@ function buildReferensiSheet(): XLSX.WorkSheet {
 export interface BuildJurnalExportOptions {
   operatorName: string;
   tanggalMutasi: Date;
+  /**
+   * Tabel pengecualian lokasi (normalisasi-lokasi.md bagian A.1), dimuat
+   * sekali oleh pemanggil lewat satu query `prisma.lokasiRef.findMany()` —
+   * fungsi ini sendiri tidak menyentuh Prisma. Default kosong untuk
+   * kompatibilitas pemanggil/test yang belum kirim tabel ini.
+   */
+  lokasiRefMap?: Map<string, LokasiRefEntry>;
 }
 
 export interface BuildJurnalExportResult {
@@ -587,7 +599,7 @@ export function buildJurnalExport(
   rows: MutasiAsetRow[],
   opts: BuildJurnalExportOptions
 ): BuildJurnalExportResult {
-  const resolved = validateAndResolve(rows);
+  const resolved = validateAndResolve(rows, opts.lokasiRefMap ?? new Map());
   const groups = assignKodeRef(sortGroups(buildGroups(resolved)), opts.tanggalMutasi);
   const keteranganMap = buildKeteranganForGroups(groups);
 

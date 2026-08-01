@@ -1,0 +1,31 @@
+raw,jumlah_baris,contoh_register,usul_kode,usul_label,usul_initial,usul_tipe,keyakinan,alasan
+Departemen Logistik,59,900/210/00697/2017,999,KP-LOG,LOG,KANTOR_PUSAT,SEDANG,"Mengandung kata kunci unit kerja KP ""LOGISTIK"": ""Departemen Logistik"""
+KC Samanhudi,25,500/501/00381/2014,003,KC-SMH,SMH,CABANG,TINGGI,Nama persis di master: KC Samanhudi
+KC Sunter,13,400/427/00003/2010,004,KC-STR,STR,CABANG,TINGGI,Nama persis di master: KC Sunter
+KCP Kelapa Gading,19,900/263/00182/2017,008,KCP-KLG,KLG,CABANG,TINGGI,Nama persis di master: KCP Kelapa gading
+KCP ULS Cimanggis,2,900/210/00697/2017,018,ULS-CMS,CMS,CABANG,SEDANG,"Dikonfirmasi user: master menulis tipe ULS, bukan KCP. Master: ULS Cimanggis"
+ULS -ULS Padang,4,500/516/00216/2026,082,ULS-PDG,PDG,CABANG,TINGGI,Duplikasi prefix; master: ULS PADANG
+ULS A Rivai Palembang,1,500/501/02666/2025,064,ULS-ARV,ARV,CABANG,SEDANG,"Dikonfirmasi user: master mengeja ""Rifai"" (raw pakai ""Rivai""). Master: ULS Rifai Palembang"
+ULS Arundina Cibubur,1,500/517/00447/2022,080,ULS-ARC,ARC,CABANG,TINGGI,Nama persis di master
+ULS Bintaro Sektor 7,1,500/517/00445/2022,065,ULS-BTR,BTR,CABANG,TINGGI,Master: ULS Bintaro Sek 7 (Sektor disingkat Sek)
+ULS Bintaro Utama,1,900/225/01078/2017,051,ULS-BTU,BTU,CABANG,TINGGI,Nama persis di master
+ULS Cirebon,7,900/512/00099/2018,081,ULS-CRB,CRB,CABANG,TINGGI,Nama persis di master
+ULS DAR,1,500/516/00218/2026,011,ULS-DAR,DAR,CABANG,TINGGI,"Beda separator dari pola dikenal: ""ULS DAR"" -> ""ULS-DAR"""
+ULS Darmo,2,500/516/00246/2026,011,ULS-DAR,DAR,CABANG,TINGGI,Master: ULS Darmo Surabaya; hanya satu Darmo
+ULS Gedangan,1,500/501/02663/2025,032,ULS-GDG,GDG,CABANG,TINGGI,Nama persis di master
+ULS Kapas Krampung,1,500/516/00244/2026,020,ULS-KKP,KKP,CABANG,TINGGI,Nama persis di master
+ULS Kepanjen,1,500/501/02670/2025,063,ULS-KPJ,KPJ,CABANG,TINGGI,Nama persis di master
+ULS Kudus,2,500/516/00243/2026,056,ULS-KDS,KDS,CABANG,TINGGI,Nama persis di master
+ULS Majapahit,1,500/501/02675/2025,034,ULS-MJP,MJP,CABANG,TINGGI,Nama persis di master
+ULS Margonda Depok,1,500/517/00442/2022,010,ULS-DEP,DEP,CABANG,TINGGI,Nama persis di master
+ULS Metro Pondok Indah,1,900/225/01078/2017,012,ULS-PDI,PDI,CABANG,TINGGI,Nama persis di master
+ULS Mojokerto,1,500/517/00453/2022,062,ULS-MJK,MJK,CABANG,TINGGI,Nama persis di master
+ULS Padang,7,500/517/00490/2022,082,ULS-PDG,PDG,CABANG,TINGGI,"Master: ULS PADANG. PDA = ULS Pandaan, bukan Padang"
+ULS Pondok Chandra,1,500/501/02671/2025,021,ULS-PDC,PDC,CABANG,TINGGI,Nama persis di master
+ULS Pondok Indah,1,500/501/02669/2025,,,,,RENDAH,AMBIGU: PDI (ULS Metro Pondok Indah) atau TPI (ULS Taman Pondok Indah) — biarkan kosong sampai user memutuskan
+ULS Puri Indah,1,500/501/02664/2025,036,ULS-PPI,PPI,CABANG,TINGGI,Nama persis di master
+ULS Sepanjang,1,500/501/02661/2025,022,ULS-SPG,SPG,CABANG,TINGGI,Nama persis di master
+ULS Sidoarjo,1,500/517/00487/2022,016,ULS-SDA,SDA,CABANG,TINGGI,Nama persis di master
+ULS Sragen,2,500/501/02674/2025,061,ULS-SRA,SRA,CABANG,TINGGI,Master: ULS Sragen Solo; hanya satu Sragen
+ULS Tanjung Priok,1,500/501/02667/2025,019,ULS-TPK,TPK,CABANG,TINGGI,Nama persis di master
+ULS ULS Cirebon,4,500/501/02687/2025,081,ULS-CRB,CRB,CABANG,TINGGI,Duplikasi prefix; master: ULS Cirebon

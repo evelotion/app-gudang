@@ -22,7 +22,7 @@ ULS Metro Pondok Indah,1,900/225/01078/2017,012,ULS-PDI,PDI,CABANG,TINGGI,Nama p
 ULS Mojokerto,1,500/517/00453/2022,062,ULS-MJK,MJK,CABANG,TINGGI,Nama persis di master
 ULS Padang,7,500/517/00490/2022,082,ULS-PDG,PDG,CABANG,TINGGI,"Master: ULS PADANG. PDA = ULS Pandaan, bukan Padang"
 ULS Pondok Chandra,1,500/501/02671/2025,021,ULS-PDC,PDC,CABANG,TINGGI,Nama persis di master
-ULS Pondok Indah,1,500/501/02669/2025,,,,,RENDAH,AMBIGU: PDI (ULS Metro Pondok Indah) atau TPI (ULS Taman Pondok Indah) — biarkan kosong sampai user memutuskan
+ULS Pondok Indah,1,500/501/02669/2025,012,ULS-PDI,PDI,CABANG,TINGGI,"Dikonfirmasi user dari aset 500/501/02669/2025: ULS Metro Pondok Indah (PDI), bukan ULS Taman Pondok Indah (TPI)"
 ULS Puri Indah,1,500/501/02664/2025,036,ULS-PPI,PPI,CABANG,TINGGI,Nama persis di master
 ULS Sepanjang,1,500/501/02661/2025,022,ULS-SPG,SPG,CABANG,TINGGI,Nama persis di master
 ULS Sidoarjo,1,500/517/00487/2022,016,ULS-SDA,SDA,CABANG,TINGGI,Nama persis di master

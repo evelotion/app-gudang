@@ -90,6 +90,23 @@ model LokasiRef {
   updatedAt   DateTime    @updatedAt
 }
 
+// Master lokasi kanonik (normalisasi-lokasi.md bagian B.1). Beda dari
+// LokasiRef: LokasiRef adalah tabel pengecualian untuk nilai historis yang
+// menyimpang, Lokasi adalah daftar kode baku (satu TIPE per cabang) yang jadi
+// acuan validasi input mutasi baru. lokasiAwal/lokasiTujuan di MutasiAset
+// TETAP String, bukan relasi -- lihat B.4.
+model Lokasi {
+  id          String      @id @default(cuid())
+  kode        String      @unique
+  kodeCabang  String
+  nama        String
+  initial     String
+  tipe        LokasiTipe
+  aktif       Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
 model MutasiAset {
   id                  String   @id @default(cuid())
   tanggalInput        DateTime @default(now())

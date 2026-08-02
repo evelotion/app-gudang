@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { lookupGolongan, lookupCabang, normalizeGolonganKey, splitLokasi } from "./mappings";
+import {
+  lookupGolongan,
+  lookupCabang,
+  normalizeGolonganKey,
+  splitLokasi,
+  resolveLokasi,
+  type LokasiRefEntry,
+} from "./mappings";
 
 describe("normalizeGolonganKey", () => {
   it("uppercases, trims, and collapses spaces", () => {
@@ -83,5 +90,89 @@ describe("lookupCabang", () => {
 
   it("returns null for free-text out of the TIPE-INITIAL pattern", () => {
     expect(lookupCabang("ULS -ULS Padang")).toBeNull();
+  });
+});
+
+describe("resolveLokasi (normalisasi-lokasi.md bagian 2)", () => {
+  it("resolves Wisma prefix W{n}L{n}- to 999, tipe WISMA", () => {
+    expect(resolveLokasi("W1L5-DMR")).toEqual({
+      code: "999",
+      abbr: "DMR",
+      label: "W1L5-DMR",
+      tipe: "WISMA",
+    });
+    expect(resolveLokasi("W2L7-LOG")).toEqual({
+      code: "999",
+      abbr: "LOG",
+      label: "W2L7-LOG",
+      tipe: "WISMA",
+    });
+  });
+
+  it("handles two-digit W/L numbers", () => {
+    expect(resolveLokasi("W10L12-XYZ")).toEqual({
+      code: "999",
+      abbr: "XYZ",
+      label: "W10L12-XYZ",
+      tipe: "WISMA",
+    });
+  });
+
+  it("still routes KP-* to 999, tipe KANTOR_PUSAT (step 3, unchanged)", () => {
+    expect(resolveLokasi("KP-ADP")).toEqual({
+      code: "999",
+      abbr: "ADP",
+      label: "KP-ADP",
+      tipe: "KANTOR_PUSAT",
+    });
+  });
+
+  it("still resolves known cabang initials (steps 3-5, unchanged)", () => {
+    expect(resolveLokasi("KCP-SGK")).toEqual({
+      code: "078",
+      abbr: "SGK",
+      label: "KCP-SGK",
+      tipe: "CABANG",
+    });
+    expect(resolveLokasi("ULS-SCI")).toEqual({
+      code: "083", // bukan 084 seperti di acuan
+      abbr: "SCI",
+      label: "ULS-SCI",
+      tipe: "CABANG",
+    });
+  });
+
+  it("an exact LokasiRef entry wins over every other rule", () => {
+    const map = new Map<string, LokasiRefEntry>([
+      ["KCP-SGK", { kodeCabang: "999", label: "Override Test", initial: "OVR", tipe: "KANTOR_PUSAT" }],
+    ]);
+    // Tanpa map: KCP-SGK -> 078 lewat tabel cabang biasa.
+    expect(resolveLokasi("KCP-SGK")).toMatchObject({ code: "078" });
+    // Dengan entry LokasiRef: entry tabel menang.
+    expect(resolveLokasi("KCP-SGK", map)).toEqual({
+      code: "999",
+      abbr: "OVR",
+      label: "Override Test",
+      tipe: "KANTOR_PUSAT",
+    });
+  });
+
+  it("resolves free-text raw values only via an exact LokasiRef entry", () => {
+    const map = new Map<string, LokasiRefEntry>([
+      ["KC Samanhudi", { kodeCabang: "003", label: "KC-SMH", initial: "SMH", tipe: "CABANG" }],
+    ]);
+    expect(resolveLokasi("KC Samanhudi", map)).toEqual({
+      code: "003",
+      abbr: "SMH",
+      label: "KC-SMH",
+      tipe: "CABANG",
+    });
+    expect(resolveLokasi("KC Samanhudi")).toBeNull();
+  });
+
+  it("returns null (not throw) for unresolved values", () => {
+    expect(resolveLokasi("ULS-XYZ")).toBeNull();
+    expect(resolveLokasi("ULS -ULS Padang")).toBeNull();
+    expect(resolveLokasi("Departemen Logistik")).toBeNull();
   });
 });

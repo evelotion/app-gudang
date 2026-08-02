@@ -196,3 +196,81 @@ export function lookupCabang(lokasi: string): CabangInfo | null {
   if (!code) return null;
   return { code, abbr: initial };
 }
+
+/**
+ * `initial` di sini harus ada di tabel 84 cabang (dipakai A.4 seed validation).
+ */
+export function isKnownCabangInitial(initial: string): boolean {
+  return Object.prototype.hasOwnProperty.call(CABANG_INITIAL_MAP, initial.toUpperCase());
+}
+
+/** Kode cabang 3 digit untuk initial dikenal, atau null. Dipakai skrip A.2. */
+export function cabangCodeForInitial(initial: string): string | null {
+  return CABANG_INITIAL_MAP[initial.toUpperCase()] ?? null;
+}
+
+/** Seluruh initial di tabel 84 cabang. Dipakai skrip B.1 (generate-lokasi-master-suggestions). */
+export function allKnownCabangInitials(): string[] {
+  return Object.keys(CABANG_INITIAL_MAP);
+}
+
+// ==========================================
+// RESOLUSI LOKASI (normalisasi-lokasi.md bagian 2)
+// ==========================================
+
+export type LokasiTipe = "CABANG" | "KANTOR_PUSAT" | "WISMA";
+
+export interface LokasiRefEntry {
+  kodeCabang: string;
+  label: string;
+  initial: string;
+  tipe: LokasiTipe;
+}
+
+export interface LokasiInfo extends CabangInfo {
+  label: string;
+  tipe: LokasiTipe;
+}
+
+/**
+ * Prefix Wisma: `W{n}L{n}-UNITKERJA` (mis. "W1L5-DMR", "W10L12-XYZ"). Lokasi
+ * fisik di lingkungan Kantor Pusat -> selalu kode 999 (bagian 1.3).
+ */
+const WISMA_PREFIX_RE = /^W\d+L\d+-/i;
+
+/**
+ * Resolusi lokasi lengkap, urutan persis bagian 2 dokumen:
+ * 1. Exact match di `lokasiRefMap` (tabel pengecualian hasil review manusia)
+ * 2. Prefix Wisma -> 999, tipe WISMA
+ * 3-5. Delegasi ke `lookupCabang` yang sudah ada (KP-x dan x-LOG -> 999,
+ *      tabel 84 cabang, selain itu null) — perilakunya tidak diubah.
+ *
+ * Pure: tidak menyentuh Prisma. `lokasiRefMap` kosong secara default supaya
+ * pemanggil lama (tanpa tabel pengecualian) tetap dapat perilaku steps 2-5.
+ */
+export function resolveLokasi(
+  rawLokasi: string,
+  lokasiRefMap: Map<string, LokasiRefEntry> = new Map()
+): LokasiInfo | null {
+  const raw = String(rawLokasi ?? "").trim();
+
+  const ref = lokasiRefMap.get(raw);
+  if (ref) {
+    return { code: ref.kodeCabang, abbr: ref.initial, label: ref.label, tipe: ref.tipe };
+  }
+
+  if (WISMA_PREFIX_RE.test(raw)) {
+    const hyphenIdx = raw.indexOf("-");
+    const initial = raw.slice(hyphenIdx + 1).trim().toUpperCase();
+    return { code: "999", abbr: initial || raw, label: raw, tipe: "WISMA" };
+  }
+
+  const cabang = lookupCabang(raw);
+  if (!cabang) return null;
+  return {
+    code: cabang.code,
+    abbr: cabang.abbr,
+    label: raw,
+    tipe: cabang.code === "999" ? "KANTOR_PUSAT" : "CABANG",
+  };
+}

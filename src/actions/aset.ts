@@ -11,9 +11,24 @@ import {
 } from "@/lib/validations";
 import { parseTanggalInput } from "@/lib/date";
 import { buildJurnalExport, ExportJurnalError } from "@/lib/exportJournal";
+import { findLokasiErrors } from "@/lib/lokasiValidation";
+import type { LokasiRefEntry } from "@/lib/mappings";
 
 function isUnauthorized(error: unknown) {
   return error instanceof Error && error.message === "UNAUTHORIZED";
+}
+
+// Dipakai di seluruh server action mutasi (create/update, tunggal/bulk) dan
+// export jurnal supaya tabel pengecualian LokasiRef cuma di-query sekali per
+// aksi, bukan per baris (normalisasi-lokasi.md bagian A.5 & B.3).
+async function loadLokasiRefMap(): Promise<Map<string, LokasiRefEntry>> {
+  const rows = await prisma.lokasiRef.findMany();
+  return new Map(
+    rows.map((r) => [
+      r.raw,
+      { kodeCabang: r.kodeCabang, label: r.label, initial: r.initial, tipe: r.tipe as LokasiRefEntry["tipe"] },
+    ])
+  );
 }
 
 // Prisma.Decimal bukan plain object, jadi gagal melewati batas Server->Client
@@ -262,6 +277,12 @@ export async function createMutasiAset(data: z.infer<typeof mutasiAsetSchema>) {
   try {
     await requireSession();
     const parsedData = mutasiAsetSchema.parse(data);
+
+    const lokasiErrors = findLokasiErrors([parsedData], await loadLokasiRefMap());
+    if (lokasiErrors.length > 0) {
+      return { success: false, message: lokasiErrors[0] };
+    }
+
     await prisma.mutasiAset.create({ data: { ...parsedData, status: "PENDING" } });
     revalidatePath("/aset/mutasi");
     return { success: true, message: "Data mutasi aset berhasil disimpan!" };
@@ -290,6 +311,15 @@ export async function createBulkMutasiAset(dataArray: any[]) {
       };
     }
 
+    const lokasiErrors = findLokasiErrors(parsed.data, await loadLokasiRefMap());
+    if (lokasiErrors.length > 0) {
+      return {
+        success: false,
+        message: lokasiErrors.length === 1 ? lokasiErrors[0] : `${lokasiErrors[0]} (+${lokasiErrors.length - 1} lainnya)`,
+        errors: lokasiErrors,
+      };
+    }
+
     const data = parsed.data.map((item) => ({ ...item, operatorName: session.nama, status: "PENDING" }));
     const hasil = await prisma.mutasiAset.createMany({ data });
     revalidatePath("/aset/mutasi");
@@ -309,6 +339,12 @@ export async function updateMutasiAset(id: string, data: z.infer<typeof mutasiAs
   try {
     await requireSession();
     const parsedData = mutasiAsetSchema.parse(data);
+
+    const lokasiErrors = findLokasiErrors([parsedData], await loadLokasiRefMap());
+    if (lokasiErrors.length > 0) {
+      return { success: false, message: lokasiErrors[0] };
+    }
+
     await prisma.mutasiAset.update({ where: { id }, data: { ...parsedData } });
     revalidatePath("/aset/mutasi");
     return { success: true, message: "Data mutasi aset berhasil diupdate!" };
@@ -322,6 +358,16 @@ export async function updateMutasiAset(id: string, data: z.infer<typeof mutasiAs
 export async function updateBulkMutasiAset(dataArray: any[]) {
   try {
     await requireSession();
+
+    const lokasiErrors = findLokasiErrors(dataArray, await loadLokasiRefMap());
+    if (lokasiErrors.length > 0) {
+      return {
+        success: false,
+        message: lokasiErrors.length === 1 ? lokasiErrors[0] : `${lokasiErrors[0]} (+${lokasiErrors.length - 1} lainnya)`,
+        errors: lokasiErrors,
+      };
+    }
+
     const transactions = dataArray.map((item) =>
       prisma.mutasiAset.update({
         where: { id: item.id },
@@ -396,9 +442,12 @@ export async function exportJurnalMutasi(tanggalMutasiStr: string) {
     }
 
     const nextDay = new Date(tanggal.getTime() + 24 * 60 * 60 * 1000);
-    const rows = await prisma.mutasiAset.findMany({
-      where: { tanggalMutasi: { gte: tanggal, lt: nextDay } },
-    });
+    const [rows, lokasiRefMap] = await Promise.all([
+      prisma.mutasiAset.findMany({
+        where: { tanggalMutasi: { gte: tanggal, lt: nextDay } },
+      }),
+      loadLokasiRefMap(),
+    ]);
 
     if (rows.length === 0) {
       return { success: false, message: "Tidak ada data mutasi untuk tanggal ini." };
@@ -407,6 +456,7 @@ export async function exportJurnalMutasi(tanggalMutasiStr: string) {
     const { buffer, fileName } = buildJurnalExport(rows, {
       operatorName: session.nama,
       tanggalMutasi: tanggal,
+      lokasiRefMap,
     });
 
     return { success: true, fileName, base64: buffer.toString("base64") };

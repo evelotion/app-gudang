@@ -9,9 +9,24 @@ import {
   hapusBukuAsetSchema,
   mutasiAsetSchema
 } from "@/lib/validations";
+import { parseTanggalInput } from "@/lib/date";
+import { buildJurnalExport, ExportJurnalError } from "@/lib/exportJournal";
 
 function isUnauthorized(error: unknown) {
   return error instanceof Error && error.message === "UNAUTHORIZED";
+}
+
+// Prisma.Decimal bukan plain object, jadi gagal melewati batas Server->Client
+// (baik lewat props maupun return value Server Action). Konversi ke number
+// sebelum data ini menyeberang ke komponen client.
+function serializeDecimals<T extends Record<string, any>>(rows: T[], keys: (keyof T)[]): T[] {
+  return rows.map((row) => {
+    const copy = { ...row };
+    for (const key of keys) {
+      if (copy[key] != null) copy[key] = Number(copy[key]) as T[typeof key];
+    }
+    return copy;
+  });
 }
 
 // ==========================================
@@ -118,10 +133,11 @@ export async function deleteBulkRegistrasiAset(ids: string[]) {
 }
 
 export async function getRegistrasiAset() {
-  try { 
-    return await prisma.registrasiAset.findMany({ orderBy: { createdAt: "desc" }}); 
-  } catch (error) { 
-    return []; 
+  try {
+    const rows = await prisma.registrasiAset.findMany({ orderBy: { createdAt: "desc" }});
+    return serializeDecimals(rows, ["hargaPerolehan"]);
+  } catch (error) {
+    return [];
   }
 }
 
@@ -230,10 +246,11 @@ export async function deleteBulkHapusBukuAset(ids: string[]) {
 }
 
 export async function getHapusBukuAset() {
-  try { 
-    return await prisma.hapusBukuAset.findMany({ orderBy: { createdAt: "desc" }}); 
-  } catch (error) { 
-    return []; 
+  try {
+    const rows = await prisma.hapusBukuAset.findMany({ orderBy: { createdAt: "desc" }});
+    return serializeDecimals(rows, ["hargaPerolehan", "akmPenyusutan", "nilaiBuku"]);
+  } catch (error) {
+    return [];
   }
 }
 
@@ -359,8 +376,44 @@ export async function deleteBulkMutasiAset(ids: string[]) {
 
 export async function getMutasiAset() {
   try {
-    return await prisma.mutasiAset.findMany({ orderBy: { tanggalInput: 'desc' } });
+    const rows = await prisma.mutasiAset.findMany({ orderBy: { tanggalInput: 'desc' } });
+    return serializeDecimals(rows, ["hargaPerolehan", "akmPenyusutan"]);
   } catch (error) {
     return [];
+  }
+}
+
+// FUNGSI BARU: Export jurnal mutasi ke .xls BIFF8 untuk upload CBS.
+// Client cuma mengirim tanggal — data mutasi di-query di server, supaya
+// tidak bisa dimanipulasi dari browser sebelum jadi jurnal (bagian 1.1).
+export async function exportJurnalMutasi(tanggalMutasiStr: string) {
+  try {
+    const session = await requireSession();
+
+    const tanggal = parseTanggalInput(tanggalMutasiStr);
+    if (!tanggal) {
+      return { success: false, message: "Tanggal tidak valid." };
+    }
+
+    const nextDay = new Date(tanggal.getTime() + 24 * 60 * 60 * 1000);
+    const rows = await prisma.mutasiAset.findMany({
+      where: { tanggalMutasi: { gte: tanggal, lt: nextDay } },
+    });
+
+    if (rows.length === 0) {
+      return { success: false, message: "Tidak ada data mutasi untuk tanggal ini." };
+    }
+
+    const { buffer, fileName } = buildJurnalExport(rows, {
+      operatorName: session.nama,
+      tanggalMutasi: tanggal,
+    });
+
+    return { success: true, fileName, base64: buffer.toString("base64") };
+  } catch (error) {
+    if (isUnauthorized(error)) return { success: false, message: "Anda harus login." };
+    if (error instanceof ExportJurnalError) return { success: false, message: error.message };
+    console.error("Export Jurnal Error:", error);
+    return { success: false, message: "Gagal membuat file jurnal." };
   }
 }

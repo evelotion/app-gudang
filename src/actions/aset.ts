@@ -396,17 +396,28 @@ export async function exportJurnalMutasi(tanggalMutasiStr: string) {
     }
 
     const nextDay = new Date(tanggal.getTime() + 24 * 60 * 60 * 1000);
-    const rows = await prisma.mutasiAset.findMany({
-      where: { tanggalMutasi: { gte: tanggal, lt: nextDay } },
-    });
+    const [rows, lokasiRefRows] = await Promise.all([
+      prisma.mutasiAset.findMany({
+        where: { tanggalMutasi: { gte: tanggal, lt: nextDay } },
+      }),
+      prisma.lokasiRef.findMany(),
+    ]);
 
     if (rows.length === 0) {
       return { success: false, message: "Tidak ada data mutasi untuk tanggal ini." };
     }
 
+    const lokasiRefMap = new Map(
+      lokasiRefRows.map((r) => [
+        r.raw,
+        { kodeCabang: r.kodeCabang, label: r.label, initial: r.initial, tipe: r.tipe as "CABANG" | "KANTOR_PUSAT" | "WISMA" },
+      ])
+    );
+
     const { buffer, fileName } = buildJurnalExport(rows, {
       operatorName: session.nama,
       tanggalMutasi: tanggal,
+      lokasiRefMap,
     });
 
     return { success: true, fileName, base64: buffer.toString("base64") };

@@ -66,6 +66,30 @@ model HapusBukuAset {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
+
+enum LokasiTipe {
+  CABANG
+  KANTOR_PUSAT
+  WISMA
+}
+
+// Tabel pengecualian untuk nilai lokasiAwal/lokasiTujuan historis yang tidak
+// berpola TIPE-INITIAL rapi (mis. "KC Samanhudi", "ULS -ULS Padang"). Diisi
+// lewat review manusia (scripts/generate-lokasi-suggestions.ts ->
+// scripts/seed-lokasi-ref.ts), bukan ditebak otomatis saat export. Lihat
+// normalisasi-lokasi.md bagian A.1.
+model LokasiRef {
+  id          String      @id @default(cuid())
+  raw         String      @unique
+  kodeCabang  String
+  label       String
+  initial     String
+  tipe        LokasiTipe
+  catatan     String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
 model MutasiAset {
   id                  String   @id @default(cuid())
   tanggalInput        DateTime @default(now())
